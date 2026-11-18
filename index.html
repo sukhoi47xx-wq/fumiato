@@ -233,7 +233,7 @@ const PREFS=['北海道','青森県','岩手県','宮城県','秋田県','山形
 const REGIONS=[['北海道・東北',0,6],['関東',7,13],['中部',14,22],['近畿',23,29],['中国',30,34],['四国',35,38],['九州・沖縄',39,46]];
 const SN=['未踏','通過','訪問','宿泊'];
 const KEY='fumiato-v1';
-const VERSION='1.8(2026-11-18)';
+const VERSION='1.9(2026-11-18)';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -313,10 +313,9 @@ function render(prefMesh){
   $('#munis').innerHTML=feats.map(f=>`<path class="m" data-id="${f.uid}" d="${path(f)||''}"/>`).join('');
   $('#prefs').innerHTML=prefMesh.map(m=>`<path class="pref" d="${path(m)||''}"/>`).join('');
   $('#labels').innerHTML=[...units.values()].map(u=>{const q=proj(u.ll);return q?`<text x="${q[0].toFixed(1)}" y="${q[1].toFixed(1)}">${esc(u.name)}</text>`:''}).join('');
-  const lab=d3.select('#labels');
   for(const u of units.values())u.els=[];
   document.querySelectorAll('#munis path').forEach(p=>units.get(p.dataset.id).els.push(p));
-  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>{const k=e.transform.k;vp.attr('transform',e.transform);svg.classed('far',k<5);lab.attr('font-size',(11/k).toFixed(4)).attr('stroke-width',(3/k).toFixed(4)).style('display',k>=3?'block':'none')}).on('start',e=>{startK=e.transform.k}).on('end',e=>{if(e.sourceEvent&&focusPi!==null&&e.transform.k<startK*.95&&e.transform.k<focusK*.45)setFocus(null)});
+  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>{const k=e.transform.k;vp.attr('transform',e.transform);svg.classed('far',k<5);applyLabels(k)}).on('start',e=>{startK=e.transform.k}).on('end',e=>{if(e.sourceEvent&&focusPi!==null&&e.transform.k<startK*.95&&e.transform.k<focusK*.45)setFocus(null);updLabTh()});
   svg.call(zoom).on('dblclick.zoom',null);svg.classed('far',true);
   // 地図は見るだけ:タップすると名前と記録を表示(色は変わらない)
   // タップの判定は自前で行う(iPhoneでは指が少し動くだけでclickが発生しないため)
@@ -340,6 +339,18 @@ function setFocus(pi){focusPi=pi;const s=renderPrefs.s||stats();$('#focus').clas
   if(pi!==null)$('#ftext').innerHTML=`${PREFS[pi]} <small>${s.per[pi][0]}/${s.per[pi][1]}</small>`}
 function focusPref(pi){focusK=zoomTo([...units.values()].filter(u=>u.pi===pi).flatMap(u=>u.feats),true);setFocus(pi);toast('市区町村をタップすると詳細が見られます')}
 $('#fback').onclick=()=>$('#home').click();
+// 市区町村名の表示条件:その都道府県を画面いっぱいに映した倍率から、さらに20%以上拡大したときだけ表示
+// (都道府県にフォーカス中はその県、そうでなければ画面中央にある県を基準にする)
+let labTh=Infinity;const prefKc=new Map();
+function prefK(pi){if(prefKc.has(pi))return prefKc.get(pi);const b=[[1e9,1e9],[-1e9,-1e9]];
+  for(const u of units.values())if(u.pi===pi)for(const f of u.feats){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
+  const k=Math.max(1,Math.min(60,.88/Math.max((b[1][0]-b[0][0])/W,(b[1][1]-b[0][1])/(H-210))));prefKc.set(pi,k);return k}
+function applyLabels(k){d3.select('#labels').attr('font-size',(11/k).toFixed(4)).attr('stroke-width',(3/k).toFixed(4)).style('display',k>=labTh*1.2?'block':'none')}
+function updLabTh(){if(!zoom)return;let pi=focusPi;if(pi===null){const r=svg.node().getBoundingClientRect();let id=unitAt(r.left+r.width/2,r.top+r.height/2);
+    if(!id){const m=svg.node().getScreenCTM(),q=new DOMPoint(r.left+r.width/2,r.top+r.height/2).matrixTransform(m.inverse()),[x,y]=d3.zoomTransform(svg.node()).invert([q.x,q.y]),ll=proj.invert([x,y]);
+      if(ll){let best=1e9;for(const u of units.values()){const d=km(ll,u.ll);if(d<best){best=d;id=u.id}}}}
+    pi=id?units.get(id).pi:null}
+  labTh=pi===null?Infinity:prefK(pi);applyLabels(d3.zoomTransform(svg.node()).k)}
 function zoomTo(fs,whole){if(!zoom)return 1;const b=[[1e9,1e9],[-1e9,-1e9]];for(const f of fs){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
   const dx=b[1][0]-b[0][0],dy=b[1][1]-b[0][1],cx=(b[0][0]+b[1][0])/2,cy=(b[0][1]+b[1][1])/2;
   const k=whole?Math.max(1,Math.min(60,.88/Math.max(dx/W,dy/(H-210)))):Math.max(1,Math.min(60,.7/Math.max(dx/W,dy/(H*.5))));
