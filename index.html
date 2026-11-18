@@ -53,6 +53,10 @@ input[type=search],input[type=text],input[type=date]{width:100%;height:46px;bord
 .home{position:absolute;left:16px;bottom:30px;z-index:3;width:48px;height:48px;border-radius:24px;border:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:0 2px 8px #0003;display:grid;place-items:center}
 .home svg,.fab svg{width:22px;height:22px}
 .fab{position:absolute;right:16px;bottom:24px;z-index:3;height:60px;padding:0 22px;border:0;border-radius:30px;background:var(--s3);color:#fff;font:inherit;font-size:16px;font-weight:900;box-shadow:0 6px 18px #cf3b2b66;display:flex;align-items:center;gap:8px}
+.focus{position:absolute;top:64px;right:10px;z-index:2;display:none;align-items:center;gap:8px;background:var(--band);color:#fff;border-radius:20px;padding:4px 4px 4px 14px;font-size:14px;font-weight:700;box-shadow:0 2px 8px #0003}
+.focus.on{display:flex}
+.focus small{font-weight:500;opacity:.85}
+.focus button{border:0;background:#ffffff26;color:#fff;border-radius:16px;min-height:34px;padding:0 12px;font:inherit;font-size:13px;font-weight:700}
 .peek{position:absolute;left:10px;right:10px;bottom:96px;z-index:4;background:var(--panel);border-radius:16px;box-shadow:0 6px 20px #0003;padding:12px 14px;display:none;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
 .peek.on{display:grid}
 .peek b{font-size:18px;display:block;line-height:1.2}
@@ -139,6 +143,7 @@ textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--li
     <svg id="map" aria-label="市区町村の白地図"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--land)"/><rect width="2.4" height="6" fill="var(--plan)" opacity=".55"/></pattern></defs><g id="vp"><g id="munis"></g><g id="prefs"></g></g></svg>
     <div class="mapsearch"><input id="mq" type="search" placeholder="地図で場所を探す(例:洞爺湖町)" autocomplete="off" aria-label="地図で市区町村を探す"><div class="results" id="mres"></div></div>
     <div class="legend" id="legend"><span><i style="background:var(--s1)"></i>通過</span><span><i style="background:var(--s2)"></i>訪問</span><span><i style="background:var(--s3)"></i>宿泊</span><span><i style="background:repeating-linear-gradient(45deg,var(--plan) 0 2px,transparent 2px 4px)"></i>予定</span></div>
+    <div class="focus" id="focus"><span id="ftext"></span><button id="fback">全国へ</button></div>
     <div class="peek" id="peek"></div>
     <button class="home" id="home" aria-label="全国を表示"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="fab" data-checkin><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>チェックイン</button>
@@ -204,7 +209,7 @@ function tidy(id){const r=S.m[id];if(r&&!r.s&&!r.plan&&!(r.log||[]).length&&!r.m
 
 const units=new Map();const feats=[];let selId=null,order='n',pickPref=null;
 const svg=d3.select('#map'),vp=d3.select('#vp');
-let W=0,H=0,path,zoom;
+let W=0,H=0,path,zoom,proj;
 
 function toast(t,undo){const e=$('#toast');e.textContent=t;
   if(undo){const b=document.createElement('button');b.textContent='元に戻す';b.onclick=()=>{undo();e.classList.remove('on')};e.appendChild(b)}
@@ -255,31 +260,48 @@ async function load(){
 function render(prefMesh){
   const box=$('#v-map').getBoundingClientRect();W=box.width||360;H=box.height||600;
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const proj=d3.geoMercator().fitExtent([[12,100],[W-12,H-96]],{type:'MultiPoint',coordinates:[[122.8,24.0],[146.0,45.6]]});
+  proj=d3.geoMercator().fitExtent([[12,100],[W-12,H-96]],{type:'MultiPoint',coordinates:[[122.8,24.0],[146.0,45.6]]});
   path=d3.geoPath(proj);
   $('#munis').innerHTML=feats.map(f=>`<path class="m" data-id="${f.uid}" d="${path(f)||''}"/>`).join('');
   $('#prefs').innerHTML=prefMesh.map(m=>`<path class="pref" d="${path(m)||''}"/>`).join('');
   for(const u of units.values())u.els=[];
   document.querySelectorAll('#munis path').forEach(p=>units.get(p.dataset.id).els.push(p));
-  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>{vp.attr('transform',e.transform);svg.classed('far',e.transform.k<5)});
+  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>{vp.attr('transform',e.transform);svg.classed('far',e.transform.k<5)}).on('start',e=>{startK=e.transform.k}).on('end',e=>{if(e.sourceEvent&&focusPi!==null&&e.transform.k<startK*.95&&e.transform.k<focusK*.45)setFocus(null)});
   svg.call(zoom).on('dblclick.zoom',null);svg.classed('far',true);
   // 地図は見るだけ:タップすると名前と記録を表示(色は変わらない)
-  svg.on('click',e=>{const p=e.target.closest&&e.target.closest('path.m');p?peek(p.dataset.id):hidePeek()})}
+  // タップの判定は自前で行う(iPhoneでは指が少し動くだけでclickが発生しないため)
+  // 1回目のタップ:その都道府県にクローズアップ / 2回目以降:市区町村の情報を表示
+  const ptr=new Map();let tap=null;const el=svg.node();
+  el.addEventListener('pointerdown',e=>{ptr.set(e.pointerId,1);tap=ptr.size===1?{x:e.clientX,y:e.clientY,t:Date.now(),id:e.pointerId}:null},{passive:true});
+  el.addEventListener('pointermove',e=>{if(tap&&e.pointerId===tap.id&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>12)tap=null},{passive:true});
+  const up=e=>{ptr.delete(e.pointerId);const t=tap;tap=null;if(!t||e.pointerId!==t.id||e.type!=='pointerup'||Date.now()-t.t>600)return;onTap(t.x,t.y)};
+  el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)}
+function unitAt(cx,cy){const m=svg.node().getScreenCTM();if(!m)return null;const q=new DOMPoint(cx,cy).matrixTransform(m.inverse());
+  const[x,y]=d3.zoomTransform(svg.node()).invert([q.x,q.y]);const ll=proj.invert([x,y]);if(!ll)return null;
+  let id=locate(ll[0],ll[1]);if(id)return id;
+  const hit=document.elementFromPoint(cx,cy);return hit&&hit.matches&&hit.matches('path.m')?hit.dataset.id:null}
+function onTap(cx,cy){const id=unitAt(cx,cy);if(!id)return hidePeek();const u=units.get(id);
+  if(focusPi!==u.pi){hidePeek();focusPref(u.pi)}else peek(id)}
 
 function paint(id){const u=units.get(id);if(!u||!u.els)return;const r=S.m[id]||{};const c=`m s${r.s||0}${r.plan?' p':''}${id===selId?' sel':''}`;u.els.forEach(e=>e.setAttribute('class',c))}
 function select(id){const p=selId;selId=id;if(p)paint(p);if(id)paint(id)}
-function zoomTo(fs){if(!zoom)return;const b=[[1e9,1e9],[-1e9,-1e9]];for(const f of fs){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
+let focusPi=null,focusK=1,startK=1;
+function setFocus(pi){focusPi=pi;const s=renderPrefs.s||stats();$('#focus').classList.toggle('on',pi!==null);$('#legend').style.display=pi===null?'':'none';
+  if(pi!==null)$('#ftext').innerHTML=`${PREFS[pi]} <small>${s.per[pi][0]}/${s.per[pi][1]}</small>`}
+function focusPref(pi){focusK=zoomTo([...units.values()].filter(u=>u.pi===pi).flatMap(u=>u.feats),true);setFocus(pi);toast('市区町村をタップすると詳細が見られます')}
+$('#fback').onclick=()=>$('#home').click();
+function zoomTo(fs,whole){if(!zoom)return 1;const b=[[1e9,1e9],[-1e9,-1e9]];for(const f of fs){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
   const dx=b[1][0]-b[0][0],dy=b[1][1]-b[0][1],cx=(b[0][0]+b[1][0])/2,cy=(b[0][1]+b[1][1])/2;
-  const k=Math.max(1,Math.min(60,.7/Math.max(dx/W,dy/(H*.5))));
-  svg.transition().duration(550).call(zoom.transform,d3.zoomIdentity.translate(W/2,H*.4).scale(k).translate(-cx,-cy))}
-$('#home').onclick=()=>{hidePeek();if(zoom)svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity)};
+  const k=whole?Math.max(1,Math.min(60,.88/Math.max(dx/W,dy/(H-210)))):Math.max(1,Math.min(60,.7/Math.max(dx/W,dy/(H*.5))));
+  svg.transition().duration(600).call(zoom.transform,d3.zoomIdentity.translate(W/2,whole?(110+(H-210)/2):H*.4).scale(k).translate(-cx,-cy));return k}
+$('#home').onclick=()=>{hidePeek();setFocus(null);if(zoom)svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity)};
 
 const label=u=>`${esc(u.pref)}${u.gun?' '+esc(u.gun):''}`;
 const lastLog=id=>{const l=(S.m[id]?.log||[]).slice().sort().pop();return l?fmtD(l):''};
 const badge=id=>{const s=st(id),p=S.m[id]?.plan;return s?`<span class="badge s${s}">${SN[s]}</span>`:p?'<span class="badge p">予定</span>':'<span class="badge">未踏</span>'};
 const urow=u=>`<button class="urow" data-id="${u.id}"><span>${esc(u.name)}<small>${label(u)}</small></span>${badge(u.id)}</button>`;
 
-function peek(id){const u=units.get(id);if(!u)return;select(id);const s=st(id),l=lastLog(id);
+function peek(id){const u=units.get(id);if(!u)return;select(id);$('#toast').classList.remove('on');const s=st(id),l=lastLog(id);
   $('#peek').innerHTML=`<div><span class="note">${label(u)}</span><b>${esc(u.name)}</b><span class="note">${s?`${SN[s]}${l?'・最終 '+l:''}`:(S.m[id]?.plan?'行く予定':'まだ記録はありません')}</span></div><button class="btn pri sm" data-open="${id}">${s?'記録を見る':'登録する'}</button>`;
   $('#peek').classList.add('on')}
 function hidePeek(){$('#peek').classList.remove('on');if(!$('#sheet').classList.contains('on'))select(null)}
@@ -287,7 +309,7 @@ $('#peek').onclick=e=>{const b=e.target.closest('[data-open]');if(b){hidePeek();
 
 function stats(){const per=PREFS.map(()=>[0,0]);let v=0;for(const u of units.values()){per[u.pi][1]++;if(st(u.id)>0){per[u.pi][0]++;v++}}return{v,t:units.size,per}}
 function updateHead(){const s=stats();const p=s.t?s.v/s.t*100:0;$('#pct').innerHTML=p.toFixed(1)+'<i>%</i>';$('#cnt').textContent=`全国 ${s.v.toLocaleString()} / ${s.t.toLocaleString()} 市区町村`;return s}
-function refresh(id){paint(id);const s=updateHead();renderPrefs(s);renderPlans();renderPicker(s);renderRecent();searchReg();if($('#sheet').classList.contains('on')&&selId===id)openUnit(id,{keep:true});if($('#peek').classList.contains('on')&&selId===id)peek(id)}
+function refresh(id){paint(id);const s=updateHead();renderPrefs.s=s;if(focusPi!==null)setFocus(focusPi);renderPrefs(s);renderPlans();renderPicker(s);renderRecent();searchReg();if($('#sheet').classList.contains('on')&&selId===id)openUnit(id,{keep:true});if($('#peek').classList.contains('on')&&selId===id)peek(id)}
 function refreshAll(){for(const id of units.keys())paint(id);const s=updateHead();renderPrefs(s);renderPlans();renderPicker(s);renderRecent()}
 
 function renderPrefs(s){renderPrefs.s=s;const ix=PREFS.map((_,i)=>i);if(order==='r')ix.sort((x,y)=>{const[a,t]=s.per[x],[b,u]=s.per[y];return(b/(u||1))-(a/(t||1))||b-a||x-y});
@@ -314,7 +336,7 @@ function searchReg(){const q=$('#rq').value,h=hits(q),box=$('#rres');if(!q.trim(
   box.style.display='block';box.innerHTML=h.length?h.map(urow).join(''):'<div class="empty">見つかりませんでした</div>'}
 $('#rq').oninput=searchReg;$('#rres').onclick=e=>{const r=e.target.closest('.urow');if(r)openUnit(r.dataset.id)};
 $('#mq').oninput=e=>{const h=hits(e.target.value).slice(0,8);$('#mres').innerHTML=e.target.value.trim()?(h.length?h.map(urow).join(''):'<div class="empty">見つかりませんでした</div>'):'';$('#mres').style.padding=h.length?'0 12px':'0'};
-$('#mres').onclick=e=>{const r=e.target.closest('.urow');if(!r)return;$('#mq').value='';$('#mres').innerHTML='';$('#mq').blur();zoomTo(units.get(r.dataset.id).feats);peek(r.dataset.id)};
+$('#mres').onclick=e=>{const r=e.target.closest('.urow');if(!r)return;$('#mq').value='';$('#mres').innerHTML='';$('#mq').blur();zoomTo(units.get(r.dataset.id).feats);setFocus(units.get(r.dataset.id).pi);peek(r.dataset.id)};
 
 const aff=u=>S.cfg.rid?`https://hb.afl.rakuten.co.jp/hgc/${encodeURIComponent(S.cfg.rid)}/?pc=${encodeURIComponent(u)}&m=${encodeURIComponent(u)}`:u;
 const kw=u=>(u.pref==='北海道'||u.name.length>2?'':u.pref)+u.name;
@@ -351,7 +373,7 @@ function openUnit(id,opts={}){const u=units.get(id);if(!u)return;select(id);
     x.s=x.log.length?Math.max(...x.log.map(logType)):0;tidy(id);save();refresh(id);toast('記録を1件削除しました',()=>restore(id,before))});
   $('#plan').onchange=e=>{rec(id).plan=e.target.checked;tidy(id);save();refresh(id)};
   $('#memo').oninput=e=>{rec(id).memo=e.target.value;clearTimeout(openUnit.t);openUnit.t=setTimeout(()=>{tidy(id);save()},400)};
-  $('#onmap').onclick=()=>{closeSheet();show('map');zoomTo(u.feats);setTimeout(()=>peek(id),600)};
+  $('#onmap').onclick=()=>{closeSheet();show('map');zoomTo(u.feats);setFocus(u.pi);setTimeout(()=>peek(id),600)};
   const cl=$('#clear');if(cl)cl.onclick=()=>{if(!cl.dataset.armed){cl.dataset.armed=1;cl.textContent='もう一度押すと消します';return}
     const before=snap(id);const x=rec(id);x.s=0;x.log=[];tidy(id);save();refresh(id);toast(`${u.name}の記録を消しました`,()=>restore(id,before))}}
 function closeSheet(){$('#sheet').classList.remove('on');if(!$('#peek').classList.contains('on'))select(null)}
@@ -365,13 +387,13 @@ document.querySelectorAll('[data-checkin]').forEach(btn=>btn.onclick=()=>{
   toast('現在地を確認しています…');
   navigator.geolocation.getCurrentPosition(p=>{const{longitude:x,latitude:y,accuracy:a}=p.coords;const id=locate(x,y);
     if(!id)return toast('市区町村を判定できませんでした。名前で検索して登録してください');
-    hidePeek();if($('#v-map').classList.contains('on'))zoomTo(units.get(id).feats);openUnit(id,{check:true,acc:a});
+    hidePeek();if($('#v-map').classList.contains('on')){zoomTo(units.get(id).feats);setFocus(units.get(id).pi)}openUnit(id,{check:true,acc:a});
     if(a>1000)toast('位置の誤差が大きめです。隣の市町村でないか確認してください')},
   e=>toast(e.code===1?'位置情報の利用が許可されていません(ブラウザの設定で許可してください)':'現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})});
 
 function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));closeSheet();hidePeek()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
-$('#preflist').onclick=e=>{const r=e.target.closest('.row');if(!r)return;const i=+r.dataset.pi;show('map');zoomTo([...units.values()].filter(u=>u.pi===i).flatMap(u=>u.feats))};
+$('#preflist').onclick=e=>{const r=e.target.closest('.row');if(!r)return;const i=+r.dataset.pi;show('map');focusPref(i)};
 $('#planlist').onclick=e=>{const r=e.target.closest('.row');if(r)openUnit(r.dataset.id)};
 
 const dump=()=>JSON.stringify({...S,exported:new Date().toISOString()});
