@@ -11,16 +11,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
-/* VOICE: 道路地図帳のように実用的で、塗るたびに少し嬉しい
-   IDEA: 営業車のダッシュボードに置いた地図帳。塗った面積が成果になる
-   PICTURE: 画面いっぱいの市区町村白地図そのもの
-   COLOUR/TYPE: 紺の帯+黄・橙・朱の三段階の塗り、予定は青の斜線/Zen Kaku Gothic New
-   LAYOUT: 上に踏破率、中央に地図、下にタブ。チェックインは親指の位置 */
+/* VOICE: 道路地図帳のように実用的で、登録するたびに少し嬉しい
+   IDEA: 営業車のダッシュボードに置いた地図帳。地図は眺めるもの、記録は手帳に書くもの
+   PICTURE: 画面いっぱいの市区町村白地図(見るだけ)
+   COLOUR/TYPE: 紺の帯+黄・橙・朱の三段階、予定は青の斜線/Zen Kaku Gothic New
+   LAYOUT: 上に踏破率、下にタブ。登録は専用タブ、チェックインは親指の位置 */
 :root{color-scheme:light dark;
 --bg:light-dark(#f2f4f7,#0f141b);--ink:light-dark(#18202b,#e8edf3);--sub:light-dark(#5b6675,#9aa6b5);
 --panel:light-dark(#ffffff,#18202b);--line:light-dark(#d5dbe3,#2a3442);
 --band:#1f3a5f;--sea:light-dark(#dfe9f3,#0b1520);--land:light-dark(#ffffff,#26303d);--border:light-dark(#b9c2cd,#3c4757);
---s1:#f5d04c;--s2:#f08a24;--s3:#cf3b2b;--plan:#2f6fe4}
+--s1:#f5d04c;--s2:#f08a24;--s3:#cf3b2b;--plan:#2f6fe4;--acc:light-dark(#1f3a5f,#8db4e8)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 html,body{height:100%}
@@ -34,81 +34,96 @@ header h1 small{display:block;font-size:12px;font-weight:500;opacity:.8}
 .rate b i{font-size:.5em;font-style:normal;margin-left:2px}
 .rate span{display:block;font-size:13px;opacity:.85;white-space:nowrap}
 main{position:relative;overflow:hidden}
-.view{position:absolute;inset:0;overflow-y:auto;display:none;padding:16px 16px 110px}
+.view{position:absolute;inset:0;overflow-y:auto;display:none;padding:16px 16px 120px}
 .view.on{display:block}
 #v-map{padding:0;overflow:hidden;background:var(--sea)}
 #map{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 #map path.m{fill:var(--land);stroke:var(--border);stroke-width:.35;vector-effect:non-scaling-stroke}
 #map path.s1{fill:var(--s1)}#map path.s2{fill:var(--s2)}#map path.s3{fill:var(--s3)}
 #map path.p.s0{fill:url(#hatch)}
-#map path.sel{stroke:var(--ink);stroke-width:2}
-#map .pref{fill:none;stroke:light-dark(#7d8896,#6b7889);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
-.search{position:absolute;top:10px;left:10px;right:10px;z-index:3;max-width:420px}
-.search input{width:100%;height:44px;border-radius:22px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:0 18px;font:inherit;font-size:16px;box-shadow:0 2px 8px #0002}
-.results{margin-top:6px;background:var(--panel);border-radius:14px;box-shadow:0 4px 16px #0003;overflow:hidden}
-.results button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);padding:12px 16px;font:inherit;min-height:44px}
-.results small{color:var(--sub);margin-left:6px}
-.modes{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.modes::-webkit-scrollbar{display:none}
-.modes button{flex:none;height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:700;box-shadow:0 2px 6px #0002;display:flex;align-items:center;gap:6px}
-.modes button i{width:12px;height:12px;border-radius:3px;border:1px solid #0003}
-.modes button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.hint{margin-top:6px;font-size:13px;background:var(--panel);border-radius:10px;padding:6px 12px;display:none;box-shadow:0 2px 6px #0002}
-.hint.on{display:inline-block}
-.home{position:absolute;left:16px;bottom:30px;z-index:3;width:48px;height:48px;border-radius:24px;border:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:0 2px 8px #0003;display:grid;place-items:center}
-.home svg{width:22px;height:22px}
+#map path.sel{stroke:var(--ink);stroke-width:2.5}
 #map.far path.s1{stroke:var(--s1);stroke-width:2.2}#map.far path.s2{stroke:var(--s2);stroke-width:2.2}#map.far path.s3{stroke:var(--s3);stroke-width:2.2}
-.toast button{margin-left:12px;border:0;background:none;color:inherit;font:inherit;font-weight:900;text-decoration:underline;min-height:32px;cursor:pointer}
-.toast.on{pointer-events:auto}
-.sort{display:flex;gap:6px;margin:-4px 0 12px}
-.sort button{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:700}
-.sort button.on{background:var(--ink);color:var(--bg)}
-.fab{position:absolute;right:16px;bottom:24px;z-index:3;height:60px;padding:0 24px;border:0;border-radius:30px;background:var(--s3);color:#fff;font:inherit;font-size:17px;font-weight:900;box-shadow:0 6px 18px #cf3b2b66;display:flex;align-items:center;gap:8px}
-.fab svg{width:22px;height:22px}
-.loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--sub);z-index:4;background:var(--sea);padding:24px}
+#map .pref{fill:none;stroke:light-dark(#7d8896,#6b7889);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
+.mapsearch{position:absolute;top:10px;left:10px;right:10px;z-index:3;max-width:420px}
+input[type=search],input[type=text],input[type=date]{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:0 14px;font:inherit;font-size:16px}
+.mapsearch input{border-radius:23px;padding:0 18px;box-shadow:0 2px 8px #0002}
+.results{margin-top:6px;background:var(--panel);border-radius:14px;box-shadow:0 4px 16px #0003;overflow:hidden}
+.legend{position:absolute;top:64px;left:10px;z-index:2;display:flex;gap:10px;font-size:12px;background:var(--panel);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px #0002}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.home{position:absolute;left:16px;bottom:30px;z-index:3;width:48px;height:48px;border-radius:24px;border:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:0 2px 8px #0003;display:grid;place-items:center}
+.home svg,.fab svg{width:22px;height:22px}
+.fab{position:absolute;right:16px;bottom:24px;z-index:3;height:60px;padding:0 22px;border:0;border-radius:30px;background:var(--s3);color:#fff;font:inherit;font-size:16px;font-weight:900;box-shadow:0 6px 18px #cf3b2b66;display:flex;align-items:center;gap:8px}
+.peek{position:absolute;left:10px;right:10px;bottom:96px;z-index:4;background:var(--panel);border-radius:16px;box-shadow:0 6px 20px #0003;padding:12px 14px;display:none;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.peek.on{display:grid}
+.peek b{font-size:18px;display:block;line-height:1.2}
+.loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--sub);z-index:5;background:var(--sea);padding:24px}
 .loading .bar{width:220px;height:6px;border-radius:3px;background:var(--line);margin:12px auto 0;overflow:hidden}
 .loading .bar div{height:100%;width:0;background:var(--band);transition:width .2s}
-nav{display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav button{border:0;background:none;color:var(--sub);font:inherit;font-size:12px;padding:8px 0 6px;min-height:56px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav{display:grid;grid-template-columns:repeat(5,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{border:0;background:none;color:var(--sub);font:inherit;font-size:11px;padding:8px 0 6px;min-height:56px;display:flex;flex-direction:column;align-items:center;gap:2px}
 nav button svg{width:22px;height:22px}
-nav button.on{color:var(--band);font-weight:700}
-:root:not([data-theme=light]) nav button.on{color:light-dark(var(--band),#8db4e8)}
+nav button.on{color:var(--acc);font-weight:700}
+nav button[data-v=reg] svg{background:var(--s3);color:#fff;border-radius:8px;padding:3px;width:28px;height:26px}
 h2{font-size:22px;line-height:1.2;margin:4px 0 12px}
 .note{font-size:13px;color:var(--sub)}
 .card{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:12px;border:1px solid var(--line)}
+.sec{font-size:13px;font-weight:700;color:var(--sub);margin:18px 0 6px}
 .row{display:grid;grid-template-columns:5.5em minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;min-height:44px}
 .row:last-child{border:0}
+.urow{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.urow:last-child{border-bottom:0}
+.urow span{flex:1}
+.urow small{color:var(--sub);font-size:12px;margin-left:6px}
+.badge{flex:none;font-size:12px;font-weight:700;border-radius:8px;padding:2px 8px;border:1px solid var(--line);color:var(--sub);white-space:nowrap}
+.badge.s1{background:var(--s1);border-color:var(--s1);color:#3b2c00}.badge.s2{background:var(--s2);border-color:var(--s2);color:#fff}.badge.s3{background:var(--s3);border-color:var(--s3);color:#fff}
+.badge.p{border-color:var(--plan);color:var(--plan)}
 .meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
 .meter div{height:100%;background:linear-gradient(90deg,var(--s1),var(--s2) 60%,var(--s3))}
 .num{font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap;text-align:right}
-.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-decoration:none;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-decoration:none;cursor:pointer}
 .btn.pri{background:var(--band);color:#fff;border-color:var(--band)}
-.btn.warn{color:var(--s3)}
+.btn.big{width:100%;min-height:58px;font-size:17px;background:var(--s3);border-color:var(--s3);color:#fff}
+.btn.big svg{width:22px;height:22px}
+.btn.warn{color:var(--s3)}.btn.sm{min-height:40px;font-size:13px;padding:0 12px}
 .btns{display:flex;flex-wrap:wrap;gap:8px}
-input[type=text]{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 12px;font:inherit;font-size:16px}
 textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px 12px;font:inherit;font-size:16px;resize:vertical}
 :focus-visible{outline:3px solid var(--plan);outline-offset:2px}
-.sheet{position:fixed;left:0;right:0;bottom:calc(57px + env(safe-area-inset-bottom));z-index:10;background:var(--panel);border-radius:20px 20px 0 0;box-shadow:0 -6px 24px #0003;max-height:68dvh;overflow-y:auto;padding:8px 18px 20px;transform:translateY(calc(100% + 140px));transition:transform .25s ease}
+.region{margin-bottom:10px}
+.region div{font-size:12px;color:var(--sub);margin-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{min-height:40px;padding:0 12px;border-radius:20px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:14px;font-weight:700}
+.chips button small{font-weight:500;color:var(--sub);margin-left:4px;font-size:11px}
+.back{border:0;background:none;color:var(--acc);font:inherit;font-weight:700;min-height:44px;padding:0;cursor:pointer}
+.sort{display:flex;gap:6px;margin:-4px 0 12px}
+.sort button{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:700}
+.sort button.on{background:var(--ink);color:var(--bg)}
+.sheet{position:fixed;left:0;right:0;bottom:calc(57px + env(safe-area-inset-bottom));z-index:10;background:var(--panel);border-radius:20px 20px 0 0;box-shadow:0 -6px 24px #0003;max-height:74dvh;overflow-y:auto;padding:8px 18px 20px;transform:translateY(calc(100% + 140px));transition:transform .25s ease}
 .sheet.on{transform:none}
 .grip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
 .sheet h3{margin:0;font-size:24px;line-height:1.15}
 .sheet .pre{font-size:13px;color:var(--sub)}
 .close{position:absolute;right:10px;top:10px;width:44px;height:44px;border:0;background:none;color:var(--sub);font-size:24px}
-.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0 10px}
-.seg button{min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;font-size:14px}
-.seg button.on[data-s="0"]{border-color:var(--sub)}
-.seg button.on[data-s="1"]{background:var(--s1);border-color:var(--s1);color:#3b2c00}
-.seg button.on[data-s="2"]{background:var(--s2);border-color:var(--s2);color:#fff}
-.seg button.on[data-s="3"]{background:var(--s3);border-color:var(--s3);color:#fff}
+.addbox{background:var(--bg);border-radius:14px;padding:12px;margin-top:12px}
+.addbox .found{font-size:14px;font-weight:700;color:var(--acc);margin:0 0 8px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.seg button{min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:700;font-size:15px}
+.seg button.on[data-t="1"]{background:var(--s1);border-color:var(--s1);color:#3b2c00}
+.seg button.on[data-t="2"]{background:var(--s2);border-color:var(--s2);color:#fff}
+.seg button.on[data-t="3"]{background:var(--s3);border-color:var(--s3);color:#fff}
+.daterow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.daterow input{background:var(--panel)}
+.hist{list-style:none;margin:0;padding:0}
+.hist li{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);min-height:44px;font-size:15px}
+.hist li span{flex:1;font-variant-numeric:tabular-nums}
+.hist button{width:40px;height:40px;border:0;background:none;color:var(--sub);font-size:18px;cursor:pointer}
 .toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:700}
 .toggle input{width:22px;height:22px;accent-color:var(--plan)}
-.links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .links a{min-height:48px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;font-weight:700;padding:6px}
-.log{font-size:14px;color:var(--sub);margin:6px 0 0;padding-left:1.2em}
-.sec{font-size:13px;font-weight:700;color:var(--sub);margin:16px 0 4px}
 .toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:22px;font-size:14px;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
-.toast.on{opacity:1}
-.empty{color:var(--sub);text-align:center;padding:24px 8px}
+.toast.on{opacity:1;pointer-events:auto}
+.toast button{margin-left:12px;border:0;background:none;color:inherit;font:inherit;font-weight:900;text-decoration:underline;min-height:32px;cursor:pointer}
+.empty{color:var(--sub);text-align:center;padding:20px 8px;font-size:14px}
 .ad{border:1px dashed var(--line);border-radius:12px;padding:14px;text-align:center;color:var(--sub);font-size:13px;margin-top:12px}
 @media(prefers-reduced-motion:reduce){.sheet{transition:none}}
 </style>
@@ -122,19 +137,27 @@ textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--li
 <main>
   <section class="view on" id="v-map">
     <svg id="map" aria-label="市区町村の白地図"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--land)"/><rect width="2.4" height="6" fill="var(--plan)" opacity=".55"/></pattern></defs><g id="vp"><g id="munis"></g><g id="prefs"></g></g></svg>
-    <div class="search"><input id="q" type="search" placeholder="市区町村名で探す(例:洞爺湖町)" autocomplete="off" aria-label="市区町村名で検索"><div class="results" id="res"></div>
-      <div class="modes" id="modes" aria-label="タップしたときの動き">
-        <button data-m="d" class="on">詳細を見る</button>
-        <button data-m="1"><i style="background:var(--s1)"></i>通過で塗る</button>
-        <button data-m="2"><i style="background:var(--s2)"></i>訪問で塗る</button>
-        <button data-m="3"><i style="background:var(--s3)"></i>宿泊で塗る</button>
-        <button data-m="0"><i style="background:var(--land)"></i>消す</button>
-      </div>
-      <div class="hint" id="hint"></div></div>
+    <div class="mapsearch"><input id="mq" type="search" placeholder="地図で場所を探す(例:洞爺湖町)" autocomplete="off" aria-label="地図で市区町村を探す"><div class="results" id="mres"></div></div>
+    <div class="legend" id="legend"><span><i style="background:var(--s1)"></i>通過</span><span><i style="background:var(--s2)"></i>訪問</span><span><i style="background:var(--s3)"></i>宿泊</span><span><i style="background:repeating-linear-gradient(45deg,var(--plan) 0 2px,transparent 2px 4px)"></i>予定</span></div>
+    <div class="peek" id="peek"></div>
     <button class="home" id="home" aria-label="全国を表示"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-    <button class="fab" id="checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>チェックイン</button>
+    <button class="fab" data-checkin><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>チェックイン</button>
     <div class="loading" id="loading"><div><div id="ltext">地図データを読み込んでいます</div><div class="bar"><div id="lbar"></div></div><div class="note" style="margin-top:10px">初回のみ数MBの通信があります</div></div></div>
   </section>
+
+  <section class="view" id="v-reg">
+    <h2>行った場所を登録</h2>
+    <button class="btn big" data-checkin><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>現在地で登録(チェックイン)</button>
+    <p class="note" style="margin:6px 2px 0">ボタンを押したときだけ位置情報を使い、いまいる市区町村を判定します。</p>
+    <div class="sec">名前で探す</div>
+    <input id="rq" type="search" placeholder="市区町村名を入力(例:富良野)" autocomplete="off" aria-label="市区町村名で検索">
+    <div class="card" id="rres" style="display:none;margin-top:8px;padding:4px 14px"></div>
+    <div class="sec">都道府県から選ぶ</div>
+    <div class="card" id="picker"></div>
+    <div class="sec">最近の記録</div>
+    <div class="card" id="recent" style="padding:4px 14px"></div>
+  </section>
+
   <section class="view" id="v-pref"><h2>都道府県ごとの踏破率</h2><div class="sort" id="sort"><button data-o="n" class="on">北から順</button><button data-o="r">踏破率が高い順</button></div><div class="card" id="preflist"></div><div class="ad">広告枠(公開時にここへ広告を設置)</div></section>
   <section class="view" id="v-plan"><h2>行く予定の地域</h2><div id="planlist"></div></section>
   <section class="view" id="v-set"><h2>設定・バックアップ</h2>
@@ -147,6 +170,7 @@ textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--li
 </main>
 <nav>
   <button class="on" data-v="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>地図</button>
+  <button data-v="reg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 6v12M6 12h12"/></svg>登録</button>
   <button data-v="pref"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>踏破率</button>
   <button data-v="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>予定</button>
   <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>設定</button>
@@ -160,26 +184,31 @@ textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--li
 if(!window.d3||!window.topojson){document.getElementById('ltext').textContent='部品を読み込めませんでした。通信環境を確認して、再読み込みしてください。'}else{
 const BASES=['https://cdn.jsdelivr.net/gh/smartnews-smri/japan-topography@main/data/municipality/topojson/s0010/','https://raw.githubusercontent.com/smartnews-smri/japan-topography/main/data/municipality/topojson/s0010/'];
 const PREFS=['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+const REGIONS=[['北海道・東北',0,6],['関東',7,13],['中部',14,22],['近畿',23,29],['中国',30,34],['四国',35,38],['九州・沖縄',39,46]];
 const SN=['未踏','通過','訪問','宿泊'];
 const KEY='fumiato-v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fmtD=s=>{const m=/^(\d{4})-(\d\d)-(\d\d)/.exec(s||'');return m?`${+m[1]}年${+m[2]}月${+m[3]}日`:s};
 
 let S={v:1,m:{},cfg:{rid:''}};
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.m)S={...S,...o,cfg:{...S.cfg,...(o.cfg||{})}}}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('保存できませんでした(ブラウザの設定をご確認ください)')}};
 const rec=id=>S.m[id]||(S.m[id]={s:0,plan:false,log:[],memo:''});
 const st=id=>(S.m[id]&&S.m[id].s)||0;
+const logType=l=>Math.max(0,SN.indexOf(String(l).split(' ')[1]));
+const snap=id=>S.m[id]?JSON.parse(JSON.stringify(S.m[id])):null;
+const restore=(id,b)=>{if(b)S.m[id]=b;else delete S.m[id];save();refresh(id)};
+function tidy(id){const r=S.m[id];if(r&&!r.s&&!r.plan&&!(r.log||[]).length&&!r.memo)delete S.m[id]}
 
-const units=new Map();const feats=[];let selId=null;
+const units=new Map();const feats=[];let selId=null,order='n',pickPref=null;
 const svg=d3.select('#map'),vp=d3.select('#vp');
 let W=0,H=0,path,zoom;
 
 function toast(t,undo){const e=$('#toast');e.textContent=t;
   if(undo){const b=document.createElement('button');b.textContent='元に戻す';b.onclick=()=>{undo();e.classList.remove('on')};e.appendChild(b)}
-  e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),undo?4500:2600)}
-let mode='d',order='n';
+  e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),undo?5000:2600)}
 
 async function getJSON(name){
   for(const b of BASES){const url=b+name;
@@ -210,9 +239,7 @@ function rewind(f){if(d3.geoArea(f)>2*Math.PI){const g=f.geometry;const ps=g.typ
 
 async function load(){
   let done=0;const prefMesh=[];
-  const tasks=PREFS.map((_,i)=>{const c=String(i+1).padStart(2,'0');
-    return getJSON(`N03-21_${c}_210101.json`).then(t=>{done++;$('#lbar').style.width=(done/47*100)+'%';return t})});
-  const topos=await Promise.all(tasks);
+  const topos=await Promise.all(PREFS.map((_,i)=>getJSON(`N03-21_${String(i+1).padStart(2,'0')}_210101.json`).then(t=>{done++;$('#lbar').style.width=(done/47*100)+'%';return t})));
   const obs=topos.map(t=>t.objects[Object.keys(t.objects)[0]]);
   obs.forEach(ob=>(ob.geometries||[]).forEach(g=>scanWards(g.properties||{})));
   const oldMap=new Map();
@@ -223,36 +250,71 @@ async function load(){
       rewind(f);f.uid=u.id;f.bb=bbox(f);feats.push(f);
       if(!units.has(u.id))units.set(u.id,{id:u.id,name:u.name,pref:u.pref,gun:u.gun,pi:i,feats:[]});units.get(u.id).feats.push(f)}});
   migrate(oldMap);
-  render(prefMesh);$('#loading').remove();updateAll()}
+  render(prefMesh);$('#loading').remove();refreshAll()}
 
 function render(prefMesh){
   const box=$('#v-map').getBoundingClientRect();W=box.width||360;H=box.height||600;
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const proj=d3.geoMercator().fitExtent([[12,118],[W-12,H-96]],{type:'MultiPoint',coordinates:[[122.8,24.0],[146.0,45.6]]});
+  const proj=d3.geoMercator().fitExtent([[12,100],[W-12,H-96]],{type:'MultiPoint',coordinates:[[122.8,24.0],[146.0,45.6]]});
   path=d3.geoPath(proj);
-  $('#munis').innerHTML=feats.map((f,i)=>`<path class="m" data-id="${f.uid}" data-i="${i}" d="${path(f)||''}"/>`).join('');
+  $('#munis').innerHTML=feats.map(f=>`<path class="m" data-id="${f.uid}" d="${path(f)||''}"/>`).join('');
   $('#prefs').innerHTML=prefMesh.map(m=>`<path class="pref" d="${path(m)||''}"/>`).join('');
   for(const u of units.values())u.els=[];
   document.querySelectorAll('#munis path').forEach(p=>units.get(p.dataset.id).els.push(p));
-  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>{vp.attr('transform',e.transform);svg.classed('far',e.transform.k<5)});svg.classed('far',true);
-  svg.call(zoom).on('dblclick.zoom',null);
-  svg.on('click',e=>{const p=e.target.closest&&e.target.closest('path.m');if(!p)return;mode==='d'?openUnit(p.dataset.id):quickPaint(p.dataset.id,+mode)})}
+  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>{vp.attr('transform',e.transform);svg.classed('far',e.transform.k<5)});
+  svg.call(zoom).on('dblclick.zoom',null);svg.classed('far',true);
+  // 地図は見るだけ:タップすると名前と記録を表示(色は変わらない)
+  svg.on('click',e=>{const p=e.target.closest&&e.target.closest('path.m');p?peek(p.dataset.id):hidePeek()})}
 
 function paint(id){const u=units.get(id);if(!u||!u.els)return;const r=S.m[id]||{};const c=`m s${r.s||0}${r.plan?' p':''}${id===selId?' sel':''}`;u.els.forEach(e=>e.setAttribute('class',c))}
-function zoomTo(fs){const b=[[1e9,1e9],[-1e9,-1e9]];for(const f of fs){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
+function select(id){const p=selId;selId=id;if(p)paint(p);if(id)paint(id)}
+function zoomTo(fs){if(!zoom)return;const b=[[1e9,1e9],[-1e9,-1e9]];for(const f of fs){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
   const dx=b[1][0]-b[0][0],dy=b[1][1]-b[0][1],cx=(b[0][0]+b[1][0])/2,cy=(b[0][1]+b[1][1])/2;
-  const k=Math.max(1,Math.min(60,.7/Math.max(dx/W,dy/(H*.55))));
-  svg.transition().duration(550).call(zoom.transform,d3.zoomIdentity.translate(W/2,H*.32).scale(k).translate(-cx,-cy))}
+  const k=Math.max(1,Math.min(60,.7/Math.max(dx/W,dy/(H*.5))));
+  svg.transition().duration(550).call(zoom.transform,d3.zoomIdentity.translate(W/2,H*.4).scale(k).translate(-cx,-cy))}
+$('#home').onclick=()=>{hidePeek();if(zoom)svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity)};
+
+const label=u=>`${esc(u.pref)}${u.gun?' '+esc(u.gun):''}`;
+const lastLog=id=>{const l=(S.m[id]?.log||[]).slice().sort().pop();return l?fmtD(l):''};
+const badge=id=>{const s=st(id),p=S.m[id]?.plan;return s?`<span class="badge s${s}">${SN[s]}</span>`:p?'<span class="badge p">予定</span>':'<span class="badge">未踏</span>'};
+const urow=u=>`<button class="urow" data-id="${u.id}"><span>${esc(u.name)}<small>${label(u)}</small></span>${badge(u.id)}</button>`;
+
+function peek(id){const u=units.get(id);if(!u)return;select(id);const s=st(id),l=lastLog(id);
+  $('#peek').innerHTML=`<div><span class="note">${label(u)}</span><b>${esc(u.name)}</b><span class="note">${s?`${SN[s]}${l?'・最終 '+l:''}`:(S.m[id]?.plan?'行く予定':'まだ記録はありません')}</span></div><button class="btn pri sm" data-open="${id}">${s?'記録を見る':'登録する'}</button>`;
+  $('#peek').classList.add('on')}
+function hidePeek(){$('#peek').classList.remove('on');if(!$('#sheet').classList.contains('on'))select(null)}
+$('#peek').onclick=e=>{const b=e.target.closest('[data-open]');if(b){hidePeek();openUnit(b.dataset.open)}};
 
 function stats(){const per=PREFS.map(()=>[0,0]);let v=0;for(const u of units.values()){per[u.pi][1]++;if(st(u.id)>0){per[u.pi][0]++;v++}}return{v,t:units.size,per}}
 function updateHead(){const s=stats();const p=s.t?s.v/s.t*100:0;$('#pct').innerHTML=p.toFixed(1)+'<i>%</i>';$('#cnt').textContent=`全国 ${s.v.toLocaleString()} / ${s.t.toLocaleString()} 市区町村`;return s}
-function updateAll(){for(const id of units.keys())paint(id);const s=updateHead();renderPrefs(s);renderPlans()}
+function refresh(id){paint(id);const s=updateHead();renderPrefs(s);renderPlans();renderPicker(s);renderRecent();searchReg();if($('#sheet').classList.contains('on')&&selId===id)openUnit(id,{keep:true});if($('#peek').classList.contains('on')&&selId===id)peek(id)}
+function refreshAll(){for(const id of units.keys())paint(id);const s=updateHead();renderPrefs(s);renderPlans();renderPicker(s);renderRecent()}
 
 function renderPrefs(s){renderPrefs.s=s;const ix=PREFS.map((_,i)=>i);if(order==='r')ix.sort((x,y)=>{const[a,t]=s.per[x],[b,u]=s.per[y];return(b/(u||1))-(a/(t||1))||b-a||x-y});
-  $('#preflist').innerHTML=ix.map(i=>{const n=PREFS[i];const[a,t]=s.per[i];const p=t?a/t*100:0;return`<div class="row" data-pi="${i}"><b>${n}</b><div class="meter"><div style="width:${p}%"></div></div><span class="num">${a}/${t}・${p.toFixed(0)}%</span></div>`}).join('')}
+  $('#preflist').innerHTML=ix.map(i=>{const[a,t]=s.per[i];const p=t?a/t*100:0;return`<div class="row" data-pi="${i}"><b>${PREFS[i]}</b><div class="meter"><div style="width:${p}%"></div></div><span class="num">${a}/${t}・${p.toFixed(0)}%</span></div>`}).join('')}
 $('#sort').onclick=e=>{const b=e.target.closest('button');if(!b)return;order=b.dataset.o;$('#sort').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderPrefs(renderPrefs.s||stats())};
 function renderPlans(){const ls=[...units.values()].filter(u=>S.m[u.id]&&S.m[u.id].plan);
-  $('#planlist').innerHTML=ls.length?`<div class="card">${ls.map(u=>`<div class="row" data-id="${u.id}" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(u.name)}</b> <span class="note">${esc(u.pref)}</span></div><a class="btn" href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored" onclick="event.stopPropagation()">宿を探す</a></div>`).join('')}</div>${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`:'<div class="empty">まだ予定はありません。<br>地図で市区町村をタップして「行く予定」をオンにすると、ここに並びます。</div>'}
+  $('#planlist').innerHTML=ls.length?`<div class="card">${ls.map(u=>`<div class="row" data-id="${u.id}" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(u.name)}</b> <span class="note">${esc(u.pref)}</span></div><a class="btn sm" href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored" onclick="event.stopPropagation()">宿を探す</a></div>`).join('')}</div>${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`:'<div class="empty">まだ予定はありません。<br>「登録」から市区町村を開いて「行く予定」をオンにすると、ここに並びます。</div>'}
+
+// 登録タブ:都道府県 → 市区町村
+function renderPicker(s){s=s||stats();
+  if(pickPref===null){$('#picker').innerHTML=REGIONS.map(([n,a,b])=>`<div class="region"><div>${n}</div><div class="chips">${PREFS.slice(a,b+1).map((p,k)=>{const i=a+k;return`<button data-pi="${i}">${p}<small>${s.per[i][0]}/${s.per[i][1]}</small></button>`}).join('')}</div></div>`).join('');return}
+  const ls=[...units.values()].filter(u=>u.pi===pickPref).sort((x,y)=>x.id<y.id?-1:1);
+  $('#picker').innerHTML=`<button class="back" data-back>← 都道府県の一覧へ</button><div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 4px"><b style="font-size:20px">${PREFS[pickPref]}</b><span class="note">${s.per[pickPref][0]} / ${s.per[pickPref][1]} 登録済み</span></div>${ls.map(urow).join('')}`}
+$('#picker').onclick=e=>{const c=e.target.closest('[data-pi]'),bk=e.target.closest('[data-back]'),r=e.target.closest('.urow');
+  if(c){pickPref=+c.dataset.pi;renderPicker();$('#picker').scrollIntoView({block:'start'})}else if(bk){pickPref=null;renderPicker()}else if(r)openUnit(r.dataset.id)};
+function renderRecent(){const all=[];for(const[id,r]of Object.entries(S.m))for(const l of r.log||[])if(units.has(id))all.push([l,id]);
+  all.sort((a,b)=>a[0]<b[0]?1:-1);
+  $('#recent').innerHTML=all.length?all.slice(0,10).map(([l,id])=>{const u=units.get(id);return`<button class="urow" data-id="${id}"><span>${esc(u.name)}<small>${fmtD(l)}</small></span><span class="badge s${logType(l)}">${SN[logType(l)]}</span></button>`}).join(''):'<div class="empty">まだ記録はありません。<br>上のボタンか検索から登録してみましょう。</div>'}
+$('#recent').onclick=e=>{const r=e.target.closest('.urow');if(r)openUnit(r.dataset.id)};
+
+// 検索
+const hits=q=>{q=q.trim();if(!q)return[];return[...units.values()].filter(u=>u.name.includes(q)||(u.pref+u.name).includes(q)||(u.gun+u.name).includes(q)).slice(0,20)};
+function searchReg(){const q=$('#rq').value,h=hits(q),box=$('#rres');if(!q.trim()){box.style.display='none';return}
+  box.style.display='block';box.innerHTML=h.length?h.map(urow).join(''):'<div class="empty">見つかりませんでした</div>'}
+$('#rq').oninput=searchReg;$('#rres').onclick=e=>{const r=e.target.closest('.urow');if(r)openUnit(r.dataset.id)};
+$('#mq').oninput=e=>{const h=hits(e.target.value).slice(0,8);$('#mres').innerHTML=e.target.value.trim()?(h.length?h.map(urow).join(''):'<div class="empty">見つかりませんでした</div>'):'';$('#mres').style.padding=h.length?'0 12px':'0'};
+$('#mres').onclick=e=>{const r=e.target.closest('.urow');if(!r)return;$('#mq').value='';$('#mres').innerHTML='';$('#mq').blur();zoomTo(units.get(r.dataset.id).feats);peek(r.dataset.id)};
 
 const aff=u=>S.cfg.rid?`https://hb.afl.rakuten.co.jp/hgc/${encodeURIComponent(S.cfg.rid)}/?pc=${encodeURIComponent(u)}&m=${encodeURIComponent(u)}`:u;
 const kw=u=>(u.pref==='北海道'||u.name.length>2?'':u.pref)+u.name;
@@ -262,60 +324,62 @@ const L={
   furu:u=>aff('https://search.rakuten.co.jp/search/mall/'+encodeURIComponent('ふるさと納税 '+u.pref+u.name)+'/'),
   eki:u=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('道の駅 '+u.pref+u.name)};
 
-function openUnit(id,opts={}){const u=units.get(id);if(!u)return;const prev=selId;selId=id;if(prev)paint(prev);paint(id);
-  const r=S.m[id]||{s:0,plan:false,log:[],memo:''};
-  $('#sbody').innerHTML=`<div class="pre">${esc(u.pref)}${u.gun?' '+esc(u.gun):''}</div><h3>${esc(u.name)}</h3>
-  ${opts.check?`<p class="note" style="margin:6px 0 0">現在地はここと判定しました${opts.acc?`(誤差 約${Math.round(opts.acc)}m)`:''}。どう記録しますか?</p>`:''}
-  <div class="seg">${SN.map((n,i)=>`<button data-s="${i}" class="${(r.s||0)===i?'on':''}">${n}</button>`).join('')}</div>
+// 市区町村の記録シート
+let draft={t:2,d:today(),check:null};
+function openUnit(id,opts={}){const u=units.get(id);if(!u)return;select(id);
+  if(!opts.keep)draft={t:2,d:today(),check:opts.check?{acc:opts.acc}:null};
+  const r=S.m[id]||{s:0,plan:false,log:[],memo:''},s=r.s||0,logs=(r.log||[]).slice().sort().reverse();
+  $('#sbody').innerHTML=`<div class="pre">${label(u)}</div><h3>${esc(u.name)}</h3>
+  <div style="margin-top:6px">${badge(id)} <span class="note">${s?(logs.length?'最終 '+fmtD(logs[0])+'・'+logs.length+'回':''):''}</span></div>
+  <div class="addbox">${draft.check?`<p class="found">現在地はここと判定しました${draft.check.acc?`(誤差 約${Math.round(draft.check.acc)}m)`:''}</p>`:''}
+    <div class="seg">${[1,2,3].map(t=>`<button data-t="${t}" class="${draft.t===t?'on':''}">${SN[t]}</button>`).join('')}</div>
+    <div class="daterow"><input type="date" id="dd" value="${draft.d}" max="${today()}" aria-label="日付"><button class="btn pri" id="add">記録する</button></div></div>
+  ${logs.length?`<div class="sec">これまでの記録</div><ul class="hist">${logs.map(l=>`<li><span>${fmtD(l)}</span><span class="badge s${logType(l)}" style="flex:none">${SN[logType(l)]}</span><button data-del="${esc(l)}" aria-label="この記録を削除">×</button></li>`).join('')}</ul>`:''}
   <label class="toggle"><input type="checkbox" id="plan" ${r.plan?'checked':''}>行く予定に入れる</label>
-  <div class="btns" style="margin-top:6px"><button class="btn" id="logtoday">今日の訪問を記録</button></div>
-  ${r.log&&r.log.length?`<ul class="log">${r.log.slice(-5).reverse().map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`:''}
   <div class="sec">メモ</div><textarea id="memo" placeholder="例:道の駅のソフトクリームが美味しかった(取引先名などは書かないのがおすすめ)">${esc(r.memo)}</textarea>
   <div class="sec">このまちの情報</div>
   <div class="links"><a href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored">近くの宿を探す</a><a href="${esc(L.eki(u))}" target="_blank" rel="noopener">道の駅を地図で見る</a><a href="${esc(L.gift(u))}" target="_blank" rel="noopener sponsored">お土産を探す</a><a href="${esc(L.furu(u))}" target="_blank" rel="noopener sponsored">ふるさと納税を見る</a></div>
-  ${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`;
-  $('#sheet').classList.add('on');
-  $('#sbody').querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{const x=rec(id);x.s=+b.dataset.s;if(opts.check&&x.s>0)x.log.push(today()+' '+SN[x.s]);save();paint(id);updateHead();renderPrefs(stats());openUnit(id,{...opts,check:false});if(x.s>0)toast(`${u.name}を「${SN[x.s]}」で記録しました`)});
-  $('#plan').onchange=e=>{rec(id).plan=e.target.checked;save();paint(id);renderPlans()};
-  $('#logtoday').onclick=()=>{const x=rec(id);if(!x.s)x.s=2;x.log.push(today()+' '+SN[x.s]);save();paint(id);updateHead();renderPrefs(stats());openUnit(id);toast('今日の訪問を記録しました')};
-  $('#memo').oninput=e=>{rec(id).memo=e.target.value;clearTimeout(openUnit.t);openUnit.t=setTimeout(save,400)}}
-function quickPaint(id,s){const u=units.get(id);const before=S.m[id]?JSON.parse(JSON.stringify(S.m[id])):null;
-  if((S.m[id]?.s||0)===s)return toast(`${u.name}はすでに「${SN[s]}」です`);
-  rec(id).s=s;save();paint(id);renderPrefs(updateHead());
-  toast(s?`${u.name}を「${SN[s]}」で塗りました`:`${u.name}の色を消しました`,()=>{if(before)S.m[id]=before;else delete S.m[id];save();paint(id);renderPrefs(updateHead())})}
-const HINT={1:'タップした市区町村を「通過」で塗ります',2:'タップした市区町村を「訪問」で塗ります',3:'タップした市区町村を「宿泊」で塗ります',0:'タップした市区町村の色を消します'};
-$('#modes').onclick=e=>{const b=e.target.closest('button');if(!b)return;mode=b.dataset.m;$('#modes').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
-  const h=$('#hint');h.textContent=HINT[mode]||'';h.classList.toggle('on',mode!=='d');if(mode!=='d')closeSheet()};
-$('#home').onclick=()=>{if(zoom)svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity)};
-function closeSheet(){$('#sheet').classList.remove('on');const p=selId;selId=null;if(p)paint(p)}
+  ${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}
+  <div class="btns" style="margin-top:14px"><button class="btn sm" id="onmap">地図で見る</button>${s||logs.length?'<button class="btn sm warn" id="clear">記録をすべて消す</button>':''}</div>`;
+  $('#sheet').classList.add('on');if(!opts.keep)$('#sheet').scrollTop=0;
+  const B=$('#sbody');
+  B.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{draft.t=+b.dataset.t;B.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b))});
+  $('#dd').onchange=e=>{draft.d=e.target.value||today()};
+  $('#add').onclick=()=>{const before=snap(id),x=rec(id),d=draft.d||today();x.log=[...(x.log||[]),`${d} ${SN[draft.t]}`].sort();x.s=Math.max(x.s||0,draft.t);save();
+    const t=draft.t;draft.check=null;refresh(id);toast(`${u.name}を「${SN[t]}」で登録しました`,()=>restore(id,before))};
+  B.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const before=snap(id),x=rec(id),i=x.log.indexOf(b.dataset.del);if(i<0)return;x.log.splice(i,1);
+    x.s=x.log.length?Math.max(...x.log.map(logType)):0;tidy(id);save();refresh(id);toast('記録を1件削除しました',()=>restore(id,before))});
+  $('#plan').onchange=e=>{rec(id).plan=e.target.checked;tidy(id);save();refresh(id)};
+  $('#memo').oninput=e=>{rec(id).memo=e.target.value;clearTimeout(openUnit.t);openUnit.t=setTimeout(()=>{tidy(id);save()},400)};
+  $('#onmap').onclick=()=>{closeSheet();show('map');zoomTo(u.feats);setTimeout(()=>peek(id),600)};
+  const cl=$('#clear');if(cl)cl.onclick=()=>{if(!cl.dataset.armed){cl.dataset.armed=1;cl.textContent='もう一度押すと消します';return}
+    const before=snap(id);const x=rec(id);x.s=0;x.log=[];tidy(id);save();refresh(id);toast(`${u.name}の記録を消しました`,()=>restore(id,before))}}
+function closeSheet(){$('#sheet').classList.remove('on');if(!$('#peek').classList.contains('on'))select(null)}
 $('#sclose').onclick=closeSheet;
 
+// チェックイン
 function locate(x,y){for(const f of feats){const b=f.bb;if(x<b[0]||x>b[2]||y<b[1]||y>b[3])continue;if(inFeat(f,x,y))return f.uid}return null}
-$('#checkin').onclick=()=>{
+document.querySelectorAll('[data-checkin]').forEach(btn=>btn.onclick=()=>{
   if(!units.size)return toast('地図の読み込みが終わるまでお待ちください');
   if(!navigator.geolocation)return toast('この端末では位置情報が使えません');
   toast('現在地を確認しています…');
   navigator.geolocation.getCurrentPosition(p=>{const{longitude:x,latitude:y,accuracy:a}=p.coords;const id=locate(x,y);
-    if(!id)return toast('市区町村を判定できませんでした。地図から選んでください');
-    show('map');zoomTo(units.get(id).feats);openUnit(id,{check:true,acc:a});if(a>1000)toast('位置の誤差が大きめです。隣の市町村でないか確認してください')},
-  e=>toast(e.code===1?'位置情報の利用が許可されていません(ブラウザの設定で許可してください)':'現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})};
+    if(!id)return toast('市区町村を判定できませんでした。名前で検索して登録してください');
+    hidePeek();if($('#v-map').classList.contains('on'))zoomTo(units.get(id).feats);openUnit(id,{check:true,acc:a});
+    if(a>1000)toast('位置の誤差が大きめです。隣の市町村でないか確認してください')},
+  e=>toast(e.code===1?'位置情報の利用が許可されていません(ブラウザの設定で許可してください)':'現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})});
 
-$('#q').oninput=e=>{const q=e.target.value.trim();if(!q){$('#res').innerHTML='';return}
-  const hit=[...units.values()].filter(u=>u.name.includes(q)||(u.pref+u.name).includes(q)).slice(0,8);
-  $('#res').innerHTML=hit.length?hit.map(u=>`<button data-id="${u.id}">${esc(u.name)}<small>${esc(u.pref)}${u.gun?' '+esc(u.gun):''}</small></button>`).join(''):'<button disabled>見つかりませんでした</button>'};
-$('#res').onclick=e=>{const b=e.target.closest('button[data-id]');if(!b)return;$('#q').value='';$('#res').innerHTML='';$('#q').blur();zoomTo(units.get(b.dataset.id).feats);openUnit(b.dataset.id)};
-
-function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v!=='map')closeSheet()}
+function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));closeSheet();hidePeek()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 $('#preflist').onclick=e=>{const r=e.target.closest('.row');if(!r)return;const i=+r.dataset.pi;show('map');zoomTo([...units.values()].filter(u=>u.pi===i).flatMap(u=>u.feats))};
-$('#planlist').onclick=e=>{const r=e.target.closest('.row');if(!r)return;show('map');zoomTo(units.get(r.dataset.id).feats);openUnit(r.dataset.id)};
+$('#planlist').onclick=e=>{const r=e.target.closest('.row');if(r)openUnit(r.dataset.id)};
 
 const dump=()=>JSON.stringify({...S,exported:new Date().toISOString()});
 $('#exp').onclick=()=>{try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([dump()],{type:'application/json'}));a.download=`fumiato-${today()}.json`;document.body.appendChild(a);a.click();a.remove();toast('書き出しました')}catch(e){toast('書き出せませんでした。「テキストでコピー」をお使いください')}};
 $('#copy').onclick=()=>{navigator.clipboard.writeText(dump()).then(()=>toast('コピーしました。メモ帳などに貼り付けて保管してください'),()=>toast('コピーできませんでした'))};
-$('#imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o||typeof o.m!=='object')throw 0;S={v:1,m:o.m,cfg:{...S.cfg,...(o.cfg||{})}};save();updateAll();$('#rid').value=S.cfg.rid||'';toast(`読み込みました(${Object.keys(o.m).length}件)`)}catch(err){toast('このファイルは読み込めませんでした')}e.target.value=''};
+$('#imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o||typeof o.m!=='object')throw 0;S={v:1,m:o.m,cfg:{...S.cfg,...(o.cfg||{})}};save();refreshAll();$('#rid').value=S.cfg.rid||'';toast(`読み込みました(${Object.keys(o.m).length}件)`)}catch(err){toast('このファイルは読み込めませんでした')}e.target.value=''};
 $('#rid').value=S.cfg.rid||'';$('#rid').onchange=e=>{S.cfg.rid=e.target.value.trim();save();renderPlans();toast(S.cfg.rid?'アフィリエイトIDを保存しました':'アフィリエイトIDを外しました')};
-let armed=false;$('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='もう一度押すと消去します';setTimeout(()=>{armed=false;e.target.textContent='すべての記録を消す'},4000);return}S.m={};save();updateAll();armed=false;e.target.textContent='すべての記録を消す';toast('すべての記録を消しました')};
+let armed=false;$('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='もう一度押すと消去します';setTimeout(()=>{armed=false;e.target.textContent='すべての記録を消す'},4000);return}S.m={};save();refreshAll();armed=false;e.target.textContent='すべての記録を消す';toast('すべての記録を消しました')};
 
 load().catch(()=>{$('#ltext').textContent='地図データを読み込めませんでした。通信環境を確認して、再読み込みしてください。'});
 }
