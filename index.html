@@ -48,8 +48,21 @@ main{position:relative;overflow:hidden}
 .results{margin-top:6px;background:var(--panel);border-radius:14px;box-shadow:0 4px 16px #0003;overflow:hidden}
 .results button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);padding:12px 16px;font:inherit;min-height:44px}
 .results small{color:var(--sub);margin-left:6px}
-.legend{position:absolute;left:10px;bottom:90px;z-index:2;background:var(--panel);border-radius:12px;padding:8px 10px;font-size:13px;display:flex;flex-wrap:wrap;gap:4px 10px;box-shadow:0 2px 8px #0002;max-width:calc(100% - 20px)}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px;border:1px solid #0002}
+.modes{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.modes::-webkit-scrollbar{display:none}
+.modes button{flex:none;height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:700;box-shadow:0 2px 6px #0002;display:flex;align-items:center;gap:6px}
+.modes button i{width:12px;height:12px;border-radius:3px;border:1px solid #0003}
+.modes button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.hint{margin-top:6px;font-size:13px;background:var(--panel);border-radius:10px;padding:6px 12px;display:none;box-shadow:0 2px 6px #0002}
+.hint.on{display:inline-block}
+.home{position:absolute;left:16px;bottom:30px;z-index:3;width:48px;height:48px;border-radius:24px;border:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:0 2px 8px #0003;display:grid;place-items:center}
+.home svg{width:22px;height:22px}
+#map.far path.s1{stroke:var(--s1);stroke-width:2.2}#map.far path.s2{stroke:var(--s2);stroke-width:2.2}#map.far path.s3{stroke:var(--s3);stroke-width:2.2}
+.toast button{margin-left:12px;border:0;background:none;color:inherit;font:inherit;font-weight:900;text-decoration:underline;min-height:32px;cursor:pointer}
+.toast.on{pointer-events:auto}
+.sort{display:flex;gap:6px;margin:-4px 0 12px}
+.sort button{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:700}
+.sort button.on{background:var(--ink);color:var(--bg)}
 .fab{position:absolute;right:16px;bottom:24px;z-index:3;height:60px;padding:0 24px;border:0;border-radius:30px;background:var(--s3);color:#fff;font:inherit;font-size:17px;font-weight:900;box-shadow:0 6px 18px #cf3b2b66;display:flex;align-items:center;gap:8px}
 .fab svg{width:22px;height:22px}
 .loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--sub);z-index:4;background:var(--sea);padding:24px}
@@ -93,7 +106,7 @@ textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--li
 .links a{min-height:48px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;font-weight:700;padding:6px}
 .log{font-size:14px;color:var(--sub);margin:6px 0 0;padding-left:1.2em}
 .sec{font-size:13px;font-weight:700;color:var(--sub);margin:16px 0 4px}
-.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 76px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:22px;font-size:14px;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:22px;font-size:14px;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
 .toast.on{opacity:1}
 .empty{color:var(--sub);text-align:center;padding:24px 8px}
 .ad{border:1px dashed var(--line);border-radius:12px;padding:14px;text-align:center;color:var(--sub);font-size:13px;margin-top:12px}
@@ -109,12 +122,20 @@ textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--li
 <main>
   <section class="view on" id="v-map">
     <svg id="map" aria-label="市区町村の白地図"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--land)"/><rect width="2.4" height="6" fill="var(--plan)" opacity=".55"/></pattern></defs><g id="vp"><g id="munis"></g><g id="prefs"></g></g></svg>
-    <div class="search"><input id="q" type="search" placeholder="市区町村名で探す(例:洞爺湖町)" autocomplete="off" aria-label="市区町村名で検索"><div class="results" id="res"></div></div>
-    <div class="legend"><span><i style="background:var(--s1)"></i>通過</span><span><i style="background:var(--s2)"></i>訪問</span><span><i style="background:var(--s3)"></i>宿泊</span><span><i style="background:url(#hatch);background:repeating-linear-gradient(45deg,var(--plan) 0 2px,transparent 2px 5px)"></i>予定</span></div>
+    <div class="search"><input id="q" type="search" placeholder="市区町村名で探す(例:洞爺湖町)" autocomplete="off" aria-label="市区町村名で検索"><div class="results" id="res"></div>
+      <div class="modes" id="modes" aria-label="タップしたときの動き">
+        <button data-m="d" class="on">詳細を見る</button>
+        <button data-m="1"><i style="background:var(--s1)"></i>通過で塗る</button>
+        <button data-m="2"><i style="background:var(--s2)"></i>訪問で塗る</button>
+        <button data-m="3"><i style="background:var(--s3)"></i>宿泊で塗る</button>
+        <button data-m="0"><i style="background:var(--land)"></i>消す</button>
+      </div>
+      <div class="hint" id="hint"></div></div>
+    <button class="home" id="home" aria-label="全国を表示"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="fab" id="checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>チェックイン</button>
     <div class="loading" id="loading"><div><div id="ltext">地図データを読み込んでいます</div><div class="bar"><div id="lbar"></div></div><div class="note" style="margin-top:10px">初回のみ数MBの通信があります</div></div></div>
   </section>
-  <section class="view" id="v-pref"><h2>都道府県ごとの踏破率</h2><div class="card" id="preflist"></div><div class="ad">広告枠(公開時にここへ広告を設置)</div></section>
+  <section class="view" id="v-pref"><h2>都道府県ごとの踏破率</h2><div class="sort" id="sort"><button data-o="n" class="on">北から順</button><button data-o="r">踏破率が高い順</button></div><div class="card" id="preflist"></div><div class="ad">広告枠(公開時にここへ広告を設置)</div></section>
   <section class="view" id="v-plan"><h2>行く予定の地域</h2><div id="planlist"></div></section>
   <section class="view" id="v-set"><h2>設定・バックアップ</h2>
     <div class="card"><div class="sec" style="margin-top:0">記録のバックアップ</div><p class="note">記録はこのスマホのブラウザ内だけに保存されています。機種変更やブラウザのデータ削除に備えて、ときどき書き出してください。</p>
@@ -155,7 +176,10 @@ const units=new Map();const feats=[];let selId=null;
 const svg=d3.select('#map'),vp=d3.select('#vp');
 let W=0,H=0,path,zoom;
 
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
+function toast(t,undo){const e=$('#toast');e.textContent=t;
+  if(undo){const b=document.createElement('button');b.textContent='元に戻す';b.onclick=()=>{undo();e.classList.remove('on')};e.appendChild(b)}
+  e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),undo?4500:2600)}
+let mode='d',order='n';
 
 async function getJSON(name){
   for(const b of BASES){const url=b+name;
@@ -163,12 +187,19 @@ async function getJSON(name){
       const r=await fetch(url);if(!r.ok)continue;if(c)c.put(url,r.clone()).catch(()=>{});return r.json()}catch(e){}}
   throw new Error(name)}
 
+// 政令市の区 → 市のコード(区コードの最小値を10の位で切り捨て。例:01101〜01110 → 01100)
+const cityId=new Map();
+const isWard=p=>p.N03_003&&/市$/.test(p.N03_003)&&/区$/.test(p.N03_004||'')&&p.N03_001!=='東京都';
+function scanWards(p){if(!isWard(p)||!/^\d{5}$/.test(p.N03_007||''))return;const k=p.N03_001+p.N03_003,c=Math.floor(+p.N03_007/10)*10;if(!cityId.has(k)||c<cityId.get(k))cityId.set(k,c)}
 function unitOf(p){
   const pref=p.N03_001,gun=p.N03_003,name=p.N03_004,code=p.N03_007;
   if(!name||!code||!/^\d{5}$/.test(code))return null;
   const n=+code;if(n>=1695&&n<=1700)return null; // 北方領土の6村は除外
-  if(gun&&/市$/.test(gun)&&/区$/.test(name)&&pref!=='東京都')return{id:code.slice(0,4)+'0',name:gun,pref,gun:''};
+  if(isWard(p))return{id:String(cityId.get(pref+gun)??Math.floor(n/10)*10).padStart(5,'0'),name:gun,pref,gun:'',old:code.slice(0,4)+'0'};
   return{id:code,name,pref,gun:gun&&!/市$/.test(gun)?gun:''}}
+// 以前の版で区が分かれて保存された記録を、市の記録にまとめる
+function migrate(oldMap){let ch=false;for(const[o,id]of oldMap){if(o===id||!S.m[o])continue;const a=S.m[o],b=rec(id);
+  b.s=Math.max(b.s||0,a.s||0);b.plan=b.plan||a.plan;b.log=[...(b.log||[]),...(a.log||[])].sort();b.memo=[b.memo,a.memo].filter(Boolean).join('\n');delete S.m[o];ch=true}if(ch)save()}
 
 function bbox(f){let a=1e9,b=1e9,c=-1e9,d=-1e9;const g=f.geometry;const ps=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
   for(const p of ps)for(const r of p)for(const[x,y]of r){if(x<a)a=x;if(y<b)b=y;if(x>c)c=x;if(y>d)d=y}return[a,b,c,d]}
@@ -182,25 +213,30 @@ async function load(){
   const tasks=PREFS.map((_,i)=>{const c=String(i+1).padStart(2,'0');
     return getJSON(`N03-21_${c}_210101.json`).then(t=>{done++;$('#lbar').style.width=(done/47*100)+'%';return t})});
   const topos=await Promise.all(tasks);
-  topos.forEach((t,i)=>{const ob=t.objects[Object.keys(t.objects)[0]];
-    prefMesh.push(topojson.mesh(t,ob,(a,b)=>a===b));
+  const obs=topos.map(t=>t.objects[Object.keys(t.objects)[0]]);
+  obs.forEach(ob=>(ob.geometries||[]).forEach(g=>scanWards(g.properties||{})));
+  const oldMap=new Map();
+  topos.forEach((t,i)=>{const ob=obs[i];
+    prefMesh.push(topojson.mesh(t,ob,(a,b)=>a===b&&!!unitOf(a.properties||{})));
     for(const f of topojson.feature(t,ob).features){const u=unitOf(f.properties||{});if(!u)continue;
+      if(u.old)oldMap.set(u.old,u.id);
       rewind(f);f.uid=u.id;f.bb=bbox(f);feats.push(f);
-      if(!units.has(u.id))units.set(u.id,{...u,pi:i,feats:[]});units.get(u.id).feats.push(f)}});
+      if(!units.has(u.id))units.set(u.id,{id:u.id,name:u.name,pref:u.pref,gun:u.gun,pi:i,feats:[]});units.get(u.id).feats.push(f)}});
+  migrate(oldMap);
   render(prefMesh);$('#loading').remove();updateAll()}
 
 function render(prefMesh){
   const box=$('#v-map').getBoundingClientRect();W=box.width||360;H=box.height||600;
   svg.attr('viewBox',`0 0 ${W} ${H}`);
-  const proj=d3.geoMercator().fitExtent([[12,64],[W-12,H-80]],{type:'MultiPoint',coordinates:[[122.8,24.0],[146.0,45.6]]});
+  const proj=d3.geoMercator().fitExtent([[12,118],[W-12,H-96]],{type:'MultiPoint',coordinates:[[122.8,24.0],[146.0,45.6]]});
   path=d3.geoPath(proj);
   $('#munis').innerHTML=feats.map((f,i)=>`<path class="m" data-id="${f.uid}" data-i="${i}" d="${path(f)||''}"/>`).join('');
   $('#prefs').innerHTML=prefMesh.map(m=>`<path class="pref" d="${path(m)||''}"/>`).join('');
   for(const u of units.values())u.els=[];
   document.querySelectorAll('#munis path').forEach(p=>units.get(p.dataset.id).els.push(p));
-  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>vp.attr('transform',e.transform));
+  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>{vp.attr('transform',e.transform);svg.classed('far',e.transform.k<5)});svg.classed('far',true);
   svg.call(zoom).on('dblclick.zoom',null);
-  svg.on('click',e=>{const p=e.target.closest&&e.target.closest('path.m');if(p)openUnit(p.dataset.id)})}
+  svg.on('click',e=>{const p=e.target.closest&&e.target.closest('path.m');if(!p)return;mode==='d'?openUnit(p.dataset.id):quickPaint(p.dataset.id,+mode)})}
 
 function paint(id){const u=units.get(id);if(!u||!u.els)return;const r=S.m[id]||{};const c=`m s${r.s||0}${r.plan?' p':''}${id===selId?' sel':''}`;u.els.forEach(e=>e.setAttribute('class',c))}
 function zoomTo(fs){const b=[[1e9,1e9],[-1e9,-1e9]];for(const f of fs){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
@@ -212,7 +248,9 @@ function stats(){const per=PREFS.map(()=>[0,0]);let v=0;for(const u of units.val
 function updateHead(){const s=stats();const p=s.t?s.v/s.t*100:0;$('#pct').innerHTML=p.toFixed(1)+'<i>%</i>';$('#cnt').textContent=`全国 ${s.v.toLocaleString()} / ${s.t.toLocaleString()} 市区町村`;return s}
 function updateAll(){for(const id of units.keys())paint(id);const s=updateHead();renderPrefs(s);renderPlans()}
 
-function renderPrefs(s){$('#preflist').innerHTML=PREFS.map((n,i)=>{const[a,t]=s.per[i];const p=t?a/t*100:0;return`<div class="row" data-pi="${i}"><b>${n}</b><div class="meter"><div style="width:${p}%"></div></div><span class="num">${a}/${t}・${p.toFixed(0)}%</span></div>`}).join('')}
+function renderPrefs(s){renderPrefs.s=s;const ix=PREFS.map((_,i)=>i);if(order==='r')ix.sort((x,y)=>{const[a,t]=s.per[x],[b,u]=s.per[y];return(b/(u||1))-(a/(t||1))||b-a||x-y});
+  $('#preflist').innerHTML=ix.map(i=>{const n=PREFS[i];const[a,t]=s.per[i];const p=t?a/t*100:0;return`<div class="row" data-pi="${i}"><b>${n}</b><div class="meter"><div style="width:${p}%"></div></div><span class="num">${a}/${t}・${p.toFixed(0)}%</span></div>`}).join('')}
+$('#sort').onclick=e=>{const b=e.target.closest('button');if(!b)return;order=b.dataset.o;$('#sort').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderPrefs(renderPrefs.s||stats())};
 function renderPlans(){const ls=[...units.values()].filter(u=>S.m[u.id]&&S.m[u.id].plan);
   $('#planlist').innerHTML=ls.length?`<div class="card">${ls.map(u=>`<div class="row" data-id="${u.id}" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(u.name)}</b> <span class="note">${esc(u.pref)}</span></div><a class="btn" href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored" onclick="event.stopPropagation()">宿を探す</a></div>`).join('')}</div>${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`:'<div class="empty">まだ予定はありません。<br>地図で市区町村をタップして「行く予定」をオンにすると、ここに並びます。</div>'}
 
@@ -237,10 +275,18 @@ function openUnit(id,opts={}){const u=units.get(id);if(!u)return;const prev=selI
   <div class="links"><a href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored">近くの宿を探す</a><a href="${esc(L.eki(u))}" target="_blank" rel="noopener">道の駅を地図で見る</a><a href="${esc(L.gift(u))}" target="_blank" rel="noopener sponsored">お土産を探す</a><a href="${esc(L.furu(u))}" target="_blank" rel="noopener sponsored">ふるさと納税を見る</a></div>
   ${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`;
   $('#sheet').classList.add('on');
-  $('#sbody').querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{const x=rec(id);x.s=+b.dataset.s;if(x.s>0&&!x.log.length)x.log.push(today()+' '+SN[x.s]);save();paint(id);updateHead();renderPrefs(stats());openUnit(id);if(x.s>0)toast(`${u.name}を「${SN[x.s]}」で記録しました`)});
+  $('#sbody').querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{const x=rec(id);x.s=+b.dataset.s;if(opts.check&&x.s>0)x.log.push(today()+' '+SN[x.s]);save();paint(id);updateHead();renderPrefs(stats());openUnit(id,{...opts,check:false});if(x.s>0)toast(`${u.name}を「${SN[x.s]}」で記録しました`)});
   $('#plan').onchange=e=>{rec(id).plan=e.target.checked;save();paint(id);renderPlans()};
   $('#logtoday').onclick=()=>{const x=rec(id);if(!x.s)x.s=2;x.log.push(today()+' '+SN[x.s]);save();paint(id);updateHead();renderPrefs(stats());openUnit(id);toast('今日の訪問を記録しました')};
   $('#memo').oninput=e=>{rec(id).memo=e.target.value;clearTimeout(openUnit.t);openUnit.t=setTimeout(save,400)}}
+function quickPaint(id,s){const u=units.get(id);const before=S.m[id]?JSON.parse(JSON.stringify(S.m[id])):null;
+  if((S.m[id]?.s||0)===s)return toast(`${u.name}はすでに「${SN[s]}」です`);
+  rec(id).s=s;save();paint(id);renderPrefs(updateHead());
+  toast(s?`${u.name}を「${SN[s]}」で塗りました`:`${u.name}の色を消しました`,()=>{if(before)S.m[id]=before;else delete S.m[id];save();paint(id);renderPrefs(updateHead())})}
+const HINT={1:'タップした市区町村を「通過」で塗ります',2:'タップした市区町村を「訪問」で塗ります',3:'タップした市区町村を「宿泊」で塗ります',0:'タップした市区町村の色を消します'};
+$('#modes').onclick=e=>{const b=e.target.closest('button');if(!b)return;mode=b.dataset.m;$('#modes').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  const h=$('#hint');h.textContent=HINT[mode]||'';h.classList.toggle('on',mode!=='d');if(mode!=='d')closeSheet()};
+$('#home').onclick=()=>{if(zoom)svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity)};
 function closeSheet(){$('#sheet').classList.remove('on');const p=selId;selId=null;if(p)paint(p)}
 $('#sclose').onclick=closeSheet;
 
