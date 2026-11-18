@@ -79,6 +79,9 @@ h2{font-size:22px;line-height:1.2;margin:4px 0 12px}
 .urow:last-child{border-bottom:0}
 .urow span{flex:1}
 .urow small{color:var(--sub);font-size:12px;margin-left:6px}
+.cnt{flex:none;font-size:13px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:1.6em minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;min-height:46px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;padding:6px 0}
+.top:last-child{border:0}.top i{font-style:normal;font-weight:900;color:var(--sub)}.top small{color:var(--sub);font-size:12px;margin-left:6px}
 .badge{flex:none;font-size:12px;font-weight:700;border-radius:8px;padding:2px 8px;border:1px solid var(--line);color:var(--sub);white-space:nowrap}
 .badge.s1{background:var(--s1);border-color:var(--s1);color:#3b2c00}.badge.s2{background:var(--s2);border-color:var(--s2);color:#fff}.badge.s3{background:var(--s3);border-color:var(--s3);color:#fff}
 .badge.p{background:var(--plan);border-color:var(--plan);color:#fff}
@@ -233,7 +236,7 @@ const PREFS=['北海道','青森県','岩手県','宮城県','秋田県','山形
 const REGIONS=[['北海道・東北',0,6],['関東',7,13],['中部',14,22],['近畿',23,29],['中国',30,34],['四国',35,38],['九州・沖縄',39,46]];
 const SN=['未踏','通過','訪問','宿泊'];
 const KEY='fumiato-v1';
-const VERSION='1.9(2026-11-18)';
+const VERSION='1.10(2026-11-18)';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -361,10 +364,11 @@ const label=u=>`${esc(u.pref)}${u.gun?' '+esc(u.gun):''}`;
 const lastLog=id=>{const l=(S.m[id]?.log||[]).slice().sort().pop();return l?fmtD(l):''};
 const planLabel=p=>`${p.t?SN[p.t]+'の予定':'予定'}${p.d?'・'+fmtD(p.d):''}`;
 const badge=id=>{const s=st(id),p=sortPlans(plansOf(id))[0];return s?`<span class="badge s${s}">${SN[s]}</span>`:p?`<span class="badge p">${p.t?SN[p.t]+'予定':'予定'}</span>`:'<span class="badge">未踏</span>'};
-const urow=u=>`<button class="urow" data-id="${u.id}"><span>${esc(u.name)}<small>${label(u)}</small></span>${badge(u.id)}</button>`;
+const nVisit=id=>(S.m[id]?.log||[]).length;
+const urow=u=>{const n=nVisit(u.id);return`<button class="urow" data-id="${u.id}"><span>${esc(u.name)}<small>${label(u)}</small></span>${n?`<span class="cnt">${n}回</span>`:''}${badge(u.id)}</button>`};
 
 function peek(id){const u=units.get(id);if(!u)return;select(id);$('#toast').classList.remove('on');const s=st(id),l=lastLog(id);
-  $('#peek').innerHTML=`<div><span class="note">${label(u)}</span><b>${esc(u.name)}</b><span class="note">${s?`${SN[s]}${l?'・最終 '+l:''}`:(plansOf(id).length?planLabel(sortPlans(plansOf(id))[0]):'まだ記録はありません')}</span></div><button class="btn pri sm" data-open="${id}">${s?'記録を見る':'登録する'}</button>`;
+  $('#peek').innerHTML=`<div><span class="note">${label(u)}</span><b>${esc(u.name)}</b><span class="note">${s?`${SN[s]}${nVisit(id)?'・'+nVisit(id)+'回':''}${l?'・最終 '+l:''}`:(plansOf(id).length?planLabel(sortPlans(plansOf(id))[0]):'まだ記録はありません')}</span></div><button class="btn pri sm" data-open="${id}">${s?'記録を見る':'登録する'}</button>`;
   $('#peek').classList.add('on')}
 function hidePeek(){$('#peek').classList.remove('on');if(!$('#sheet').classList.contains('on'))select(null)}
 $('#peek').onclick=e=>{const b=e.target.closest('[data-open]');if(b){hidePeek();openUnit(b.dataset.open)}};
@@ -513,17 +517,21 @@ function checkBadges(){if(!S.ach)return;const nw=currentBadges().filter(b=>!S.ac
   queueModal(()=>celebrate(nw))}
 function renderStats(s){s=s||stats();const fv=firstVisits(),y=String(new Date().getFullYear()),ym=today().slice(0,7);
   let yr=0,mo=0;const byY={};for(const d of fv.values()){if(!d)continue;const Y=d.slice(0,4);byY[Y]=(byY[Y]||0)+1;if(Y===y)yr++;if(d.slice(0,7)===ym)mo++}
+  let total=0;const tops=[];for(const[id,r]of Object.entries(S.m)){const n=(r.log||[]).length;total+=n;if(n&&units.has(id))tops.push([n,id,(r.log||[]).slice().sort().pop()])}
+  tops.sort((a,b)=>b[0]-a[0]||(a[2]<b[2]?1:-1));
   const x=badgeCtx(s);const ys=Object.keys(byY).sort().reverse(),mx=Math.max(1,...Object.values(byY));
   const got=currentBadges(s).filter(b=>S.ach&&S.ach[b.k]).sort((a,b)=>(S.ach[b.k]||'')<(S.ach[a.k]||'')?-1:1);
   const goals=BADGE_DEF.filter(b=>!b.ok(x)).map(b=>({...b.goal(x),k:b.k})).filter(g=>g.n>0).sort((a,b)=>a.n-b.n).slice(0,3);
   $('#stats').innerHTML=`<div class="card"><div class="stats4">
     <div><b>${yr}</b><span>${y}年に新しく行った市区町村</span></div><div><b>${mo}</b><span>今月の新規</span></div>
     <div><b>${x.prefs}<small style="font-size:14px"> / 47</small></b><span>足跡のある都道府県</span></div><div><b>${x.stay}</b><span>宿泊した市区町村</span></div></div>
+    <p class="note" style="margin:10px 2px 0">これまでの記録 合計 <b style="color:var(--ink)">${total}</b> 回</p>
+    ${tops.length?`<div class="sec">よく行く市区町村</div><div id="tops">${tops.slice(0,5).map(([n,id],i)=>{const u=units.get(id);return`<button class="top" data-id="${id}"><i>${i+1}</i><span>${esc(u.name)}<small>${esc(u.pref)}</small></span><span class="cnt">${n}回</span></button>`}).join('')}</div>`:''}
     ${ys.length?`<div class="sec">年ごとの新規</div>${ys.map(Y=>`<div class="yrow"><span>${Y}年</span><div class="ybar" style="width:${byY[Y]/mx*100}%"></div><span class="num">${byY[Y]}</span></div>`).join('')}`:''}
     <div class="btns" style="margin-top:14px"><button class="btn pri" id="shot" style="width:100%">踏破マップを画像で保存</button></div></div>
   <div class="card"><div class="sec" style="margin-top:0">達成バッジ</div>${got.length?`<div class="badges">${got.map(b=>`<span class="bdg">${MEDAL('#e0a526')}${esc(b.label)}</span>`).join('')}</div>`:'<p class="note" style="margin:0">最初の登録で、最初のバッジが手に入ります。</p>'}
     ${goals.length?`<div class="sec">次の目標</div>${goals.map(g=>`<div class="goal">${esc(g.txt)}まで あと<b>${g.n}</b>${g.unit||'市区町村'}</div>`).join('')}`:''}</div>`;
-  $('#shot').onclick=shareImage}
+  $('#shot').onclick=shareImage;const tp=$('#tops');if(tp)tp.onclick=e=>{const r=e.target.closest('.top');if(r)openUnit(r.dataset.id)}}
 
 // ===== 踏破マップの画像 =====
 async function shareImage(){if(!units.size)return;toast('画像を作っています…');try{await document.fonts.ready}catch(e){}
