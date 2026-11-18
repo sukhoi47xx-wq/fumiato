@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ふみあと">
+<meta name="theme-color" content="#1f3a5f">
+<title>ふみあと 市区町村踏破マップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 道路地図帳のように実用的で、塗るたびに少し嬉しい
+   IDEA: 営業車のダッシュボードに置いた地図帳。塗った面積が成果になる
+   PICTURE: 画面いっぱいの市区町村白地図そのもの
+   COLOUR/TYPE: 紺の帯+黄・橙・朱の三段階の塗り、予定は青の斜線/Zen Kaku Gothic New
+   LAYOUT: 上に踏破率、中央に地図、下にタブ。チェックインは親指の位置 */
+:root{color-scheme:light dark;
+--bg:light-dark(#f2f4f7,#0f141b);--ink:light-dark(#18202b,#e8edf3);--sub:light-dark(#5b6675,#9aa6b5);
+--panel:light-dark(#ffffff,#18202b);--line:light-dark(#d5dbe3,#2a3442);
+--band:#1f3a5f;--sea:light-dark(#dfe9f3,#0b1520);--land:light-dark(#ffffff,#26303d);--border:light-dark(#b9c2cd,#3c4757);
+--s1:#f5d04c;--s2:#f08a24;--s3:#cf3b2b;--plan:#2f6fe4}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.app{height:100dvh;display:grid;grid-template-rows:auto 1fr auto}
+header{background:var(--band);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 12px;display:flex;align-items:flex-end;gap:14px}
+header h1{margin:0;font-size:15px;font-weight:700;opacity:.85;flex:1}
+header h1 small{display:block;font-size:12px;font-weight:500;opacity:.8}
+.rate{text-align:right;line-height:1.05}
+.rate b{font-size:clamp(30px,8vw,42px);font-weight:900;letter-spacing:-.02em}
+.rate b i{font-size:.5em;font-style:normal;margin-left:2px}
+.rate span{display:block;font-size:13px;opacity:.85;white-space:nowrap}
+main{position:relative;overflow:hidden}
+.view{position:absolute;inset:0;overflow-y:auto;display:none;padding:16px 16px 110px}
+.view.on{display:block}
+#v-map{padding:0;overflow:hidden;background:var(--sea)}
+#map{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#map path.m{fill:var(--land);stroke:var(--border);stroke-width:.35;vector-effect:non-scaling-stroke}
+#map path.s1{fill:var(--s1)}#map path.s2{fill:var(--s2)}#map path.s3{fill:var(--s3)}
+#map path.p.s0{fill:url(#hatch)}
+#map path.sel{stroke:var(--ink);stroke-width:2}
+#map .pref{fill:none;stroke:light-dark(#7d8896,#6b7889);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
+.search{position:absolute;top:10px;left:10px;right:10px;z-index:3;max-width:420px}
+.search input{width:100%;height:44px;border-radius:22px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:0 18px;font:inherit;font-size:16px;box-shadow:0 2px 8px #0002}
+.results{margin-top:6px;background:var(--panel);border-radius:14px;box-shadow:0 4px 16px #0003;overflow:hidden}
+.results button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);padding:12px 16px;font:inherit;min-height:44px}
+.results small{color:var(--sub);margin-left:6px}
+.legend{position:absolute;left:10px;bottom:90px;z-index:2;background:var(--panel);border-radius:12px;padding:8px 10px;font-size:13px;display:flex;flex-wrap:wrap;gap:4px 10px;box-shadow:0 2px 8px #0002;max-width:calc(100% - 20px)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px;border:1px solid #0002}
+.fab{position:absolute;right:16px;bottom:24px;z-index:3;height:60px;padding:0 24px;border:0;border-radius:30px;background:var(--s3);color:#fff;font:inherit;font-size:17px;font-weight:900;box-shadow:0 6px 18px #cf3b2b66;display:flex;align-items:center;gap:8px}
+.fab svg{width:22px;height:22px}
+.loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--sub);z-index:4;background:var(--sea);padding:24px}
+.loading .bar{width:220px;height:6px;border-radius:3px;background:var(--line);margin:12px auto 0;overflow:hidden}
+.loading .bar div{height:100%;width:0;background:var(--band);transition:width .2s}
+nav{display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{border:0;background:none;color:var(--sub);font:inherit;font-size:12px;padding:8px 0 6px;min-height:56px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button svg{width:22px;height:22px}
+nav button.on{color:var(--band);font-weight:700}
+:root:not([data-theme=light]) nav button.on{color:light-dark(var(--band),#8db4e8)}
+h2{font-size:22px;line-height:1.2;margin:4px 0 12px}
+.note{font-size:13px;color:var(--sub)}
+.card{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:12px;border:1px solid var(--line)}
+.row{display:grid;grid-template-columns:5.5em minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;min-height:44px}
+.row:last-child{border:0}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.meter div{height:100%;background:linear-gradient(90deg,var(--s1),var(--s2) 60%,var(--s3))}
+.num{font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap;text-align:right}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-decoration:none;cursor:pointer}
+.btn.pri{background:var(--band);color:#fff;border-color:var(--band)}
+.btn.warn{color:var(--s3)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+input[type=text]{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 12px;font:inherit;font-size:16px}
+textarea{width:100%;min-height:72px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px 12px;font:inherit;font-size:16px;resize:vertical}
+:focus-visible{outline:3px solid var(--plan);outline-offset:2px}
+.sheet{position:fixed;left:0;right:0;bottom:calc(57px + env(safe-area-inset-bottom));z-index:10;background:var(--panel);border-radius:20px 20px 0 0;box-shadow:0 -6px 24px #0003;max-height:68dvh;overflow-y:auto;padding:8px 18px 20px;transform:translateY(calc(100% + 140px));transition:transform .25s ease}
+.sheet.on{transform:none}
+.grip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.sheet h3{margin:0;font-size:24px;line-height:1.15}
+.sheet .pre{font-size:13px;color:var(--sub)}
+.close{position:absolute;right:10px;top:10px;width:44px;height:44px;border:0;background:none;color:var(--sub);font-size:24px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0 10px}
+.seg button{min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;font-size:14px}
+.seg button.on[data-s="0"]{border-color:var(--sub)}
+.seg button.on[data-s="1"]{background:var(--s1);border-color:var(--s1);color:#3b2c00}
+.seg button.on[data-s="2"]{background:var(--s2);border-color:var(--s2);color:#fff}
+.seg button.on[data-s="3"]{background:var(--s3);border-color:var(--s3);color:#fff}
+.toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:700}
+.toggle input{width:22px;height:22px;accent-color:var(--plan)}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.links a{min-height:48px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;font-weight:700;padding:6px}
+.log{font-size:14px;color:var(--sub);margin:6px 0 0;padding-left:1.2em}
+.sec{font-size:13px;font-weight:700;color:var(--sub);margin:16px 0 4px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 76px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:22px;font-size:14px;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.empty{color:var(--sub);text-align:center;padding:24px 8px}
+.ad{border:1px dashed var(--line);border-radius:12px;padding:14px;text-align:center;color:var(--sub);font-size:13px;margin-top:12px}
+@media(prefers-reduced-motion:reduce){.sheet{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>ふみあと<small>市区町村踏破マップ</small></h1>
+  <div class="rate"><b id="pct">0<i>%</i></b><span id="cnt">読み込み中…</span></div>
+</header>
+<main>
+  <section class="view on" id="v-map">
+    <svg id="map" aria-label="市区町村の白地図"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--land)"/><rect width="2.4" height="6" fill="var(--plan)" opacity=".55"/></pattern></defs><g id="vp"><g id="munis"></g><g id="prefs"></g></g></svg>
+    <div class="search"><input id="q" type="search" placeholder="市区町村名で探す(例:洞爺湖町)" autocomplete="off" aria-label="市区町村名で検索"><div class="results" id="res"></div></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>通過</span><span><i style="background:var(--s2)"></i>訪問</span><span><i style="background:var(--s3)"></i>宿泊</span><span><i style="background:url(#hatch);background:repeating-linear-gradient(45deg,var(--plan) 0 2px,transparent 2px 5px)"></i>予定</span></div>
+    <button class="fab" id="checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>チェックイン</button>
+    <div class="loading" id="loading"><div><div id="ltext">地図データを読み込んでいます</div><div class="bar"><div id="lbar"></div></div><div class="note" style="margin-top:10px">初回のみ数MBの通信があります</div></div></div>
+  </section>
+  <section class="view" id="v-pref"><h2>都道府県ごとの踏破率</h2><div class="card" id="preflist"></div><div class="ad">広告枠(公開時にここへ広告を設置)</div></section>
+  <section class="view" id="v-plan"><h2>行く予定の地域</h2><div id="planlist"></div></section>
+  <section class="view" id="v-set"><h2>設定・バックアップ</h2>
+    <div class="card"><div class="sec" style="margin-top:0">記録のバックアップ</div><p class="note">記録はこのスマホのブラウザ内だけに保存されています。機種変更やブラウザのデータ削除に備えて、ときどき書き出してください。</p>
+      <div class="btns"><button class="btn pri" id="exp">ファイルに書き出す</button><button class="btn" id="copy">テキストでコピー</button><label class="btn">ファイルから読み込む<input type="file" id="imp" accept=".json,application/json" hidden></label></div></div>
+    <div class="card"><div class="sec" style="margin-top:0">楽天アフィリエイトID(任意)</div><p class="note">入力すると、宿・お土産・ふるさと納税のリンクがアフィリエイトリンクになります。</p><input type="text" id="rid" placeholder="例:1a2b3c4d.5e6f7a8b.1a2b3c4d.5e6f7a8b" autocomplete="off"></div>
+    <div class="card"><div class="sec" style="margin-top:0">記録の全消去</div><div class="btns"><button class="btn warn" id="reset">すべての記録を消す</button></div></div>
+    <p class="note">地図:国土交通省「国土数値情報(行政区域データ)」をSmartNews Media Research Instituteが加工したデータ(2021年1月時点)を利用しています。政令指定都市は区をまとめて1市として数えます。</p>
+  </section>
+</main>
+<nav>
+  <button class="on" data-v="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>地図</button>
+  <button data-v="pref"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>踏破率</button>
+  <button data-v="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>予定</button>
+  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>設定</button>
+</nav>
+</div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="false"><div class="grip"></div><button class="close" id="sclose" aria-label="閉じる">×</button><div id="sbody"></div></div>
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+if(!window.d3||!window.topojson){document.getElementById('ltext').textContent='部品を読み込めませんでした。通信環境を確認して、再読み込みしてください。'}else{
+const BASES=['https://cdn.jsdelivr.net/gh/smartnews-smri/japan-topography@main/data/municipality/topojson/s0010/','https://raw.githubusercontent.com/smartnews-smri/japan-topography/main/data/municipality/topojson/s0010/'];
+const PREFS=['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+const SN=['未踏','通過','訪問','宿泊'];
+const KEY='fumiato-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+let S={v:1,m:{},cfg:{rid:''}};
+try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.m)S={...S,...o,cfg:{...S.cfg,...(o.cfg||{})}}}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('保存できませんでした(ブラウザの設定をご確認ください)')}};
+const rec=id=>S.m[id]||(S.m[id]={s:0,plan:false,log:[],memo:''});
+const st=id=>(S.m[id]&&S.m[id].s)||0;
+
+const units=new Map();const feats=[];let selId=null;
+const svg=d3.select('#map'),vp=d3.select('#vp');
+let W=0,H=0,path,zoom;
+
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
+
+async function getJSON(name){
+  for(const b of BASES){const url=b+name;
+    try{let c=null;if('caches' in window){c=await caches.open('fumiato-geo');const hit=await c.match(url);if(hit)return hit.json()}
+      const r=await fetch(url);if(!r.ok)continue;if(c)c.put(url,r.clone()).catch(()=>{});return r.json()}catch(e){}}
+  throw new Error(name)}
+
+function unitOf(p){
+  const pref=p.N03_001,gun=p.N03_003,name=p.N03_004,code=p.N03_007;
+  if(!name||!code||!/^\d{5}$/.test(code))return null;
+  const n=+code;if(n>=1695&&n<=1700)return null; // 北方領土の6村は除外
+  if(gun&&/市$/.test(gun)&&/区$/.test(name)&&pref!=='東京都')return{id:code.slice(0,4)+'0',name:gun,pref,gun:''};
+  return{id:code,name,pref,gun:gun&&!/市$/.test(gun)?gun:''}}
+
+function bbox(f){let a=1e9,b=1e9,c=-1e9,d=-1e9;const g=f.geometry;const ps=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+  for(const p of ps)for(const r of p)for(const[x,y]of r){if(x<a)a=x;if(y<b)b=y;if(x>c)c=x;if(y>d)d=y}return[a,b,c,d]}
+function inRing(r,x,y){let k=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const[xi,yi]=r[i],[xj,yj]=r[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)k=!k}return k}
+function inFeat(f,x,y){const g=f.geometry;const ps=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+  return ps.some(p=>{let k=false;for(const r of p)if(inRing(r,x,y))k=!k;return k})}
+function rewind(f){if(d3.geoArea(f)>2*Math.PI){const g=f.geometry;const ps=g.type==='Polygon'?[g.coordinates]:g.coordinates;for(const p of ps)for(const r of p)r.reverse()}}
+
+async function load(){
+  let done=0;const prefMesh=[];
+  const tasks=PREFS.map((_,i)=>{const c=String(i+1).padStart(2,'0');
+    return getJSON(`N03-21_${c}_210101.json`).then(t=>{done++;$('#lbar').style.width=(done/47*100)+'%';return t})});
+  const topos=await Promise.all(tasks);
+  topos.forEach((t,i)=>{const ob=t.objects[Object.keys(t.objects)[0]];
+    prefMesh.push(topojson.mesh(t,ob,(a,b)=>a===b));
+    for(const f of topojson.feature(t,ob).features){const u=unitOf(f.properties||{});if(!u)continue;
+      rewind(f);f.uid=u.id;f.bb=bbox(f);feats.push(f);
+      if(!units.has(u.id))units.set(u.id,{...u,pi:i,feats:[]});units.get(u.id).feats.push(f)}});
+  render(prefMesh);$('#loading').remove();updateAll()}
+
+function render(prefMesh){
+  const box=$('#v-map').getBoundingClientRect();W=box.width||360;H=box.height||600;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+  const proj=d3.geoMercator().fitExtent([[12,64],[W-12,H-80]],{type:'MultiPoint',coordinates:[[122.8,24.0],[146.0,45.6]]});
+  path=d3.geoPath(proj);
+  $('#munis').innerHTML=feats.map((f,i)=>`<path class="m" data-id="${f.uid}" data-i="${i}" d="${path(f)||''}"/>`).join('');
+  $('#prefs').innerHTML=prefMesh.map(m=>`<path class="pref" d="${path(m)||''}"/>`).join('');
+  for(const u of units.values())u.els=[];
+  document.querySelectorAll('#munis path').forEach(p=>units.get(p.dataset.id).els.push(p));
+  zoom=d3.zoom().scaleExtent([1,120]).translateExtent([[-W,-H],[2*W,2*H]]).clickDistance(8).on('zoom',e=>vp.attr('transform',e.transform));
+  svg.call(zoom).on('dblclick.zoom',null);
+  svg.on('click',e=>{const p=e.target.closest&&e.target.closest('path.m');if(p)openUnit(p.dataset.id)})}
+
+function paint(id){const u=units.get(id);if(!u||!u.els)return;const r=S.m[id]||{};const c=`m s${r.s||0}${r.plan?' p':''}${id===selId?' sel':''}`;u.els.forEach(e=>e.setAttribute('class',c))}
+function zoomTo(fs){const b=[[1e9,1e9],[-1e9,-1e9]];for(const f of fs){const[[a,c],[d,e]]=path.bounds(f);b[0][0]=Math.min(b[0][0],a);b[0][1]=Math.min(b[0][1],c);b[1][0]=Math.max(b[1][0],d);b[1][1]=Math.max(b[1][1],e)}
+  const dx=b[1][0]-b[0][0],dy=b[1][1]-b[0][1],cx=(b[0][0]+b[1][0])/2,cy=(b[0][1]+b[1][1])/2;
+  const k=Math.max(1,Math.min(60,.7/Math.max(dx/W,dy/(H*.55))));
+  svg.transition().duration(550).call(zoom.transform,d3.zoomIdentity.translate(W/2,H*.32).scale(k).translate(-cx,-cy))}
+
+function stats(){const per=PREFS.map(()=>[0,0]);let v=0;for(const u of units.values()){per[u.pi][1]++;if(st(u.id)>0){per[u.pi][0]++;v++}}return{v,t:units.size,per}}
+function updateHead(){const s=stats();const p=s.t?s.v/s.t*100:0;$('#pct').innerHTML=p.toFixed(1)+'<i>%</i>';$('#cnt').textContent=`全国 ${s.v.toLocaleString()} / ${s.t.toLocaleString()} 市区町村`;return s}
+function updateAll(){for(const id of units.keys())paint(id);const s=updateHead();renderPrefs(s);renderPlans()}
+
+function renderPrefs(s){$('#preflist').innerHTML=PREFS.map((n,i)=>{const[a,t]=s.per[i];const p=t?a/t*100:0;return`<div class="row" data-pi="${i}"><b>${n}</b><div class="meter"><div style="width:${p}%"></div></div><span class="num">${a}/${t}・${p.toFixed(0)}%</span></div>`}).join('')}
+function renderPlans(){const ls=[...units.values()].filter(u=>S.m[u.id]&&S.m[u.id].plan);
+  $('#planlist').innerHTML=ls.length?`<div class="card">${ls.map(u=>`<div class="row" data-id="${u.id}" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(u.name)}</b> <span class="note">${esc(u.pref)}</span></div><a class="btn" href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored" onclick="event.stopPropagation()">宿を探す</a></div>`).join('')}</div>${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`:'<div class="empty">まだ予定はありません。<br>地図で市区町村をタップして「行く予定」をオンにすると、ここに並びます。</div>'}
+
+const aff=u=>S.cfg.rid?`https://hb.afl.rakuten.co.jp/hgc/${encodeURIComponent(S.cfg.rid)}/?pc=${encodeURIComponent(u)}&m=${encodeURIComponent(u)}`:u;
+const kw=u=>(u.pref==='北海道'||u.name.length>2?'':u.pref)+u.name;
+const L={
+  hotel:u=>aff('https://kw.travel.rakuten.co.jp/keyword/Search.do?charset=utf-8&f_keyword='+encodeURIComponent(u.pref+' '+u.name)),
+  gift:u=>aff('https://search.rakuten.co.jp/search/mall/'+encodeURIComponent(kw(u)+' お土産')+'/'),
+  furu:u=>aff('https://search.rakuten.co.jp/search/mall/'+encodeURIComponent('ふるさと納税 '+u.pref+u.name)+'/'),
+  eki:u=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('道の駅 '+u.pref+u.name)};
+
+function openUnit(id,opts={}){const u=units.get(id);if(!u)return;const prev=selId;selId=id;if(prev)paint(prev);paint(id);
+  const r=S.m[id]||{s:0,plan:false,log:[],memo:''};
+  $('#sbody').innerHTML=`<div class="pre">${esc(u.pref)}${u.gun?' '+esc(u.gun):''}</div><h3>${esc(u.name)}</h3>
+  ${opts.check?`<p class="note" style="margin:6px 0 0">現在地はここと判定しました${opts.acc?`(誤差 約${Math.round(opts.acc)}m)`:''}。どう記録しますか?</p>`:''}
+  <div class="seg">${SN.map((n,i)=>`<button data-s="${i}" class="${(r.s||0)===i?'on':''}">${n}</button>`).join('')}</div>
+  <label class="toggle"><input type="checkbox" id="plan" ${r.plan?'checked':''}>行く予定に入れる</label>
+  <div class="btns" style="margin-top:6px"><button class="btn" id="logtoday">今日の訪問を記録</button></div>
+  ${r.log&&r.log.length?`<ul class="log">${r.log.slice(-5).reverse().map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`:''}
+  <div class="sec">メモ</div><textarea id="memo" placeholder="例:道の駅のソフトクリームが美味しかった(取引先名などは書かないのがおすすめ)">${esc(r.memo)}</textarea>
+  <div class="sec">このまちの情報</div>
+  <div class="links"><a href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored">近くの宿を探す</a><a href="${esc(L.eki(u))}" target="_blank" rel="noopener">道の駅を地図で見る</a><a href="${esc(L.gift(u))}" target="_blank" rel="noopener sponsored">お土産を探す</a><a href="${esc(L.furu(u))}" target="_blank" rel="noopener sponsored">ふるさと納税を見る</a></div>
+  ${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`;
+  $('#sheet').classList.add('on');
+  $('#sbody').querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{const x=rec(id);x.s=+b.dataset.s;if(x.s>0&&!x.log.length)x.log.push(today()+' '+SN[x.s]);save();paint(id);updateHead();renderPrefs(stats());openUnit(id);if(x.s>0)toast(`${u.name}を「${SN[x.s]}」で記録しました`)});
+  $('#plan').onchange=e=>{rec(id).plan=e.target.checked;save();paint(id);renderPlans()};
+  $('#logtoday').onclick=()=>{const x=rec(id);if(!x.s)x.s=2;x.log.push(today()+' '+SN[x.s]);save();paint(id);updateHead();renderPrefs(stats());openUnit(id);toast('今日の訪問を記録しました')};
+  $('#memo').oninput=e=>{rec(id).memo=e.target.value;clearTimeout(openUnit.t);openUnit.t=setTimeout(save,400)}}
+function closeSheet(){$('#sheet').classList.remove('on');const p=selId;selId=null;if(p)paint(p)}
+$('#sclose').onclick=closeSheet;
+
+function locate(x,y){for(const f of feats){const b=f.bb;if(x<b[0]||x>b[2]||y<b[1]||y>b[3])continue;if(inFeat(f,x,y))return f.uid}return null}
+$('#checkin').onclick=()=>{
+  if(!units.size)return toast('地図の読み込みが終わるまでお待ちください');
+  if(!navigator.geolocation)return toast('この端末では位置情報が使えません');
+  toast('現在地を確認しています…');
+  navigator.geolocation.getCurrentPosition(p=>{const{longitude:x,latitude:y,accuracy:a}=p.coords;const id=locate(x,y);
+    if(!id)return toast('市区町村を判定できませんでした。地図から選んでください');
+    show('map');zoomTo(units.get(id).feats);openUnit(id,{check:true,acc:a});if(a>1000)toast('位置の誤差が大きめです。隣の市町村でないか確認してください')},
+  e=>toast(e.code===1?'位置情報の利用が許可されていません(ブラウザの設定で許可してください)':'現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})};
+
+$('#q').oninput=e=>{const q=e.target.value.trim();if(!q){$('#res').innerHTML='';return}
+  const hit=[...units.values()].filter(u=>u.name.includes(q)||(u.pref+u.name).includes(q)).slice(0,8);
+  $('#res').innerHTML=hit.length?hit.map(u=>`<button data-id="${u.id}">${esc(u.name)}<small>${esc(u.pref)}${u.gun?' '+esc(u.gun):''}</small></button>`).join(''):'<button disabled>見つかりませんでした</button>'};
+$('#res').onclick=e=>{const b=e.target.closest('button[data-id]');if(!b)return;$('#q').value='';$('#res').innerHTML='';$('#q').blur();zoomTo(units.get(b.dataset.id).feats);openUnit(b.dataset.id)};
+
+function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v!=='map')closeSheet()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+$('#preflist').onclick=e=>{const r=e.target.closest('.row');if(!r)return;const i=+r.dataset.pi;show('map');zoomTo([...units.values()].filter(u=>u.pi===i).flatMap(u=>u.feats))};
+$('#planlist').onclick=e=>{const r=e.target.closest('.row');if(!r)return;show('map');zoomTo(units.get(r.dataset.id).feats);openUnit(r.dataset.id)};
+
+const dump=()=>JSON.stringify({...S,exported:new Date().toISOString()});
+$('#exp').onclick=()=>{try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([dump()],{type:'application/json'}));a.download=`fumiato-${today()}.json`;document.body.appendChild(a);a.click();a.remove();toast('書き出しました')}catch(e){toast('書き出せませんでした。「テキストでコピー」をお使いください')}};
+$('#copy').onclick=()=>{navigator.clipboard.writeText(dump()).then(()=>toast('コピーしました。メモ帳などに貼り付けて保管してください'),()=>toast('コピーできませんでした'))};
+$('#imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o||typeof o.m!=='object')throw 0;S={v:1,m:o.m,cfg:{...S.cfg,...(o.cfg||{})}};save();updateAll();$('#rid').value=S.cfg.rid||'';toast(`読み込みました(${Object.keys(o.m).length}件)`)}catch(err){toast('このファイルは読み込めませんでした')}e.target.value=''};
+$('#rid').value=S.cfg.rid||'';$('#rid').onchange=e=>{S.cfg.rid=e.target.value.trim();save();renderPlans();toast(S.cfg.rid?'アフィリエイトIDを保存しました':'アフィリエイトIDを外しました')};
+let armed=false;$('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='もう一度押すと消去します';setTimeout(()=>{armed=false;e.target.textContent='すべての記録を消す'},4000);return}S.m={};save();updateAll();armed=false;e.target.textContent='すべての記録を消す';toast('すべての記録を消しました')};
+
+load().catch(()=>{$('#ltext').textContent='地図データを読み込めませんでした。通信環境を確認して、再読み込みしてください。'});
+}
+</script>
+</body>
+</html>
