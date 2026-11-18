@@ -207,7 +207,7 @@ input[type=date]{min-width:0;-webkit-appearance:none;appearance:none}
   <section class="view" id="v-set"><h2>設定・バックアップ</h2>
     <div class="card"><div class="sec" style="margin-top:0">記録のバックアップ</div><p class="note">記録はこのスマホのブラウザ内だけに保存されています。機種変更やブラウザのデータ削除に備えて、ときどき書き出してください。</p>
       <div class="btns"><button class="btn pri" id="exp">ファイルに書き出す</button><button class="btn" id="copy">テキストでコピー</button><label class="btn">ファイルから読み込む<input type="file" id="imp" accept=".json,application/json" hidden></label></div></div>
-    <div class="card"><div class="sec" style="margin-top:0">楽天アフィリエイトID(任意)</div><p class="note">入力すると、宿・お土産・ふるさと納税のリンクがアフィリエイトリンクになります。</p><input type="text" id="rid" placeholder="例:1a2b3c4d.5e6f7a8b.1a2b3c4d.5e6f7a8b" autocomplete="off"></div>
+    <div class="card"><div class="sec" style="margin-top:0">楽天アフィリエイトID(任意)</div><p class="note">入力すると、お土産・ふるさと納税のリンクがアフィリエイトリンクになります。</p><input type="text" id="rid" placeholder="例:1a2b3c4d.5e6f7a8b.1a2b3c4d.5e6f7a8b" autocomplete="off"></div>
     <div class="card"><div class="sec" style="margin-top:0">記録の全消去</div><div class="btns"><button class="btn warn" id="reset">すべての記録を消す</button></div></div>
     <p class="note">地図:国土交通省「国土数値情報(行政区域データ)」をSmartNews Media Research Instituteが加工したデータ(2021年1月時点)を利用しています。政令指定都市は区をまとめて1市として数えます。</p>
     <p class="note">バージョン <span id="ver"></span></p>
@@ -233,7 +233,7 @@ const PREFS=['北海道','青森県','岩手県','宮城県','秋田県','山形
 const REGIONS=[['北海道・東北',0,6],['関東',7,13],['中部',14,22],['近畿',23,29],['中国',30,34],['四国',35,38],['九州・沖縄',39,46]];
 const SN=['未踏','通過','訪問','宿泊'];
 const KEY='fumiato-v1';
-const VERSION='1.7(2026-11-18)';
+const VERSION='1.8(2026-11-18)';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -368,7 +368,7 @@ function renderPrefs(s){renderPrefs.s=s;const ix=PREFS.map((_,i)=>i);if(order===
 $('#sort').onclick=e=>{const b=e.target.closest('button');if(!b)return;order=b.dataset.o;$('#sort').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderPrefs(renderPrefs.s||stats())};
 function renderPlans(){const all=[];for(const u of units.values())for(const p of plansOf(u.id))all.push({u,p});
   all.sort((a,b)=>(a.p.d||'9999')<(b.p.d||'9999')?-1:(a.p.d||'9999')>(b.p.d||'9999')?1:0);const td=today();
-  $('#planlist').innerHTML=all.length?`<div class="card">${all.map(({u,p})=>`<div class="prow" data-id="${u.id}"><div><div class="d${p.d&&p.d<td?' past':''}">${p.d?fmtD(p.d)+(p.d<td?'(過ぎています)':''):'日付未定'}</div><b>${esc(u.name)}</b> <span class="note">${esc(u.pref)}</span> <span class="badge p">${p.t?SN[p.t]:'種類未定'}</span></div><a class="btn sm" href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored" onclick="event.stopPropagation()">宿を探す</a></div>`).join('')}</div>${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`:'<div class="empty">まだ予定はありません。<br>「登録」から市区町村を開き、「行く予定」を選んで追加すると、ここに日付順で並びます。</div>'}
+  $('#planlist').innerHTML=all.length?`<div class="card">${all.map(({u,p})=>`<div class="prow" data-id="${u.id}"><div><div class="d${p.d&&p.d<td?' past':''}">${p.d?fmtD(p.d)+(p.d<td?'(過ぎています)':''):'日付未定'}</div><b>${esc(u.name)}</b> <span class="note">${esc(u.pref)}</span> <span class="badge p">${p.t?SN[p.t]:'種類未定'}</span></div><a class="btn sm" href="${esc(L.hotel(u))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">宿を探す</a></div>`).join('')}</div>${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}`:'<div class="empty">まだ予定はありません。<br>「登録」から市区町村を開き、「行く予定」を選んで追加すると、ここに日付順で並びます。</div>'}
 
 // 登録タブ:都道府県 → 市区町村
 function renderPicker(s){s=s||stats();
@@ -393,7 +393,8 @@ $('#mres').onclick=e=>{const r=e.target.closest('.urow');if(!r)return;$('#mq').v
 const aff=u=>S.cfg.rid?`https://hb.afl.rakuten.co.jp/hgc/${encodeURIComponent(S.cfg.rid)}/?pc=${encodeURIComponent(u)}&m=${encodeURIComponent(u)}`:u;
 const kw=u=>(u.pref==='北海道'||u.name.length>2?'':u.pref)+u.name;
 const L={
-  hotel:u=>aff('https://kw.travel.rakuten.co.jp/keyword/Search.do?charset=utf-8&f_keyword='+encodeURIComponent(u.pref+' '+u.name)),
+  // 宿:Googleマップで周辺の宿泊施設を表示(町内に宿がなくても近くの宿が出る)
+  hotel:u=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('宿泊施設 '+u.pref+u.name),
   gift:u=>aff('https://search.rakuten.co.jp/search/mall/'+encodeURIComponent(kw(u)+' お土産')+'/'),
   furu:u=>aff('https://search.rakuten.co.jp/search/mall/'+encodeURIComponent('ふるさと納税 '+u.pref+u.name)+'/'),
   eki:u=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('道の駅 '+u.pref+u.name)};
@@ -414,7 +415,7 @@ function openUnit(id,opts={}){const u=units.get(id);if(!u)return;select(id);
   ${logs.length?`<div class="sec">これまでの記録</div><ul class="hist">${logs.map(l=>`<li><span>${fmtD(l)}</span><span class="badge s${logType(l)}" style="flex:none">${SN[logType(l)]}</span><button data-del="${esc(l)}" aria-label="この記録を削除">×</button></li>`).join('')}</ul>`:''}
   <div class="sec">メモ</div><textarea id="memo" placeholder="※個人名や取引先は記入しないこと。">${esc(r.memo)}</textarea>
   <div class="sec">このまちの情報</div>
-  <div class="links"><a href="${esc(L.hotel(u))}" target="_blank" rel="noopener sponsored">近くの宿を探す</a><a href="${esc(L.eki(u))}" target="_blank" rel="noopener">道の駅を地図で見る</a><a href="${esc(L.gift(u))}" target="_blank" rel="noopener sponsored">お土産を探す</a><a href="${esc(L.furu(u))}" target="_blank" rel="noopener sponsored">ふるさと納税を見る</a></div>
+  <div class="links"><a href="${esc(L.hotel(u))}" target="_blank" rel="noopener">近くの宿を探す</a><a href="${esc(L.eki(u))}" target="_blank" rel="noopener">道の駅を地図で見る</a><a href="${esc(L.gift(u))}" target="_blank" rel="noopener sponsored">お土産を探す</a><a href="${esc(L.furu(u))}" target="_blank" rel="noopener sponsored">ふるさと納税を見る</a></div>
   ${S.cfg.rid?'<p class="note">※リンクにはPR(アフィリエイト)を含みます</p>':''}
   <div class="btns" style="margin-top:14px"><button class="btn sm" id="onmap">地図で見る</button>${s||logs.length||pls.length?'<button class="btn sm warn" id="clear">記録と予定をすべて消す</button>':''}</div>`;
   $('#sheet').classList.add('on');if(!opts.keep)$('#sheet').scrollTop=0;
